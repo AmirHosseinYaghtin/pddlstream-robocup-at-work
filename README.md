@@ -28,7 +28,7 @@ robocup-pddlstream/
 │
 ├── pddlstream/              # Original PDDLStream framework
 │
-├── reference/               # Unmodified reference example(s)
+├── examples/               # Unmodified reference example(s)
 │   └── discrete_tamp/
 │
 ├── domains/
@@ -110,9 +110,9 @@ Potential additions include:
 
 ---
 
-## Reference Example
+## Reference Example (examples)
 
-The `reference/` directory contains an unmodified example from the official PDDLStream repository.
+The `examples/` directory contains an unmodified example from the official PDDLStream repository.
 
 Its purpose is to verify that:
 
