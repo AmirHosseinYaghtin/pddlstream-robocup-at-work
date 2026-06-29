@@ -5,14 +5,18 @@
     (Conf ?q)
     (Block ?b)
     (Pose ?p)
+
     (Kin ?q ?p)
+
     (AtPose ?p ?q)
     (AtConf ?q)
     (Holding ?b)
     (HandEmpty)
+
     (CFree ?p1 ?p2)
     (Collision ?p1 ?p2)
     (Unsafe ?p)
+
     (CanMove)
   )
   (:functions
@@ -26,6 +30,8 @@
                  (not (AtConf ?q1)) (not (CanMove))
                  (increase (total-cost) (Distance ?q1 ?q2)))
   )
+
+
   (:action pick
     :parameters (?b ?p ?q)
     :precondition (and (Block ?b) (Kin ?q ?p)

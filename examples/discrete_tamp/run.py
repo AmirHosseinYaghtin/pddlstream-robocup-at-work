@@ -89,6 +89,7 @@ def apply_action(state, action):
         block, pose, _ = args
         holding = None
         block_poses[block] = pose
+
     elif name == 'push':
         block, _, _, pose, conf = args
         holding = None

@@ -29,7 +29,8 @@ robocup-pddlstream/
 ├── pddlstream/              # Original PDDLStream framework
 │
 ├── examples/               # Unmodified reference example(s)
-│   └── discrete_tamp/
+│   ├── discrete_tamp/
+│   └── continuous_tamp/
 │
 ├── domains/
 │   ├── discrete2d/
