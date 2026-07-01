@@ -86,7 +86,7 @@ def get_ik_fn(problem):
 
     def fn(pose):
         if pose not in valid_poses:
-            return
-        yield (pose_to_conf(pose),)
+            return None
+        return (pose_to_conf(pose),)
     return fn
 

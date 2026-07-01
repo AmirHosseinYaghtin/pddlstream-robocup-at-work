@@ -7,14 +7,19 @@ import numpy as np
 
 from pddlstream.algorithms.meta import solve, create_parser
 
-from primitives import DiscreteTAMPState
-from primitives import get_pose_gen, get_ik_fn
-from problems.pick_place import get_pick_and_place_problem
+from .primitives import DiscreteTAMPState
+from .primitives import get_pose_gen, get_ik_fn
+
+from .problems.pick_place import get_pick_and_place_problem
+from .problems.object_transport import get_object_transport_problem
+from .problems.rearrangement import get_rearrangement_problem
+from .problems.blocked_retrieval import get_blocked_retrieval_problem
 
 from pddlstream.language.constants import And, Equal, TOTAL_COST, print_solution, PDDLProblem
 from pddlstream.language.generator import from_gen_fn, from_fn, from_test
 from pddlstream.utils import user_input, read, INF
 
+from .viewer import apply_plan
 
 def pddlstream_from_tamp(tamp_problem):
     initial = tamp_problem.initial
@@ -69,7 +74,11 @@ def main():
     args = parser.parse_args()
     print('Arguments:', args)
 
-    problem_fn = get_pick_and_place_problem
+    # problem_fn = get_pick_and_place_problem
+    # problem_fn = get_object_transport_problem
+    problem_fn = get_rearrangement_problem
+    # problem_fn = get_blocked_retrieval_problem
+
     tamp_problem = problem_fn()
     print(tamp_problem)
 
@@ -84,6 +93,7 @@ def main():
     if plan is None:
         return
 
+    apply_plan(tamp_problem, plan)
 
 if __name__ == '__main__':
     main()

@@ -23,8 +23,8 @@ def get_rearrangement_problem():
     )
 
     goal_poses = {
-        'obj0': shelf1_slot2,
-        'obj1': table1_slot2,
+        'obj0': shelf1_slot1,
+        'obj1': table1_slot1,
     }
 
     poses = [

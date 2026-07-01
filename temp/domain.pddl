@@ -1,50 +1,111 @@
-(define (domain discrete-tamp)
+(define (domain robocup-discrete-tamp)
+
   (:requirements :strips :equality)
-  (:constants q100)
+
   (:predicates
-    (Conf ?q)
-    (Block ?b)
-    (Pose ?p)
-    (Kin ?q ?p)
-    (AtPose ?p ?q)
-    (AtConf ?q)
-    (Holding ?b)
-    (HandEmpty)
-    (CFree ?p1 ?p2)
-    (Collision ?p1 ?p2)
-    (Unsafe ?p)
-    (CanMove)
+
+    ;; ---------------------------
+    ;; Types encoded as predicates
+    ;; ---------------------------
+
+    (Conf ?q)           ;; robot configuration
+    (Pose ?p)           ;; object placement pose
+    (Object ?o)         ;; movable object
+
+    ;; ---------------------------
+    ;; Robot state
+    ;; ---------------------------
+
+    (AtConf ?q)         ;; robot is at configuration q
+    (HandEmpty)         ;; gripper empty
+    (Holding ?o)        ;; holding object o
+    (CanMove)           ;; gating predicate to separate move/pick/place
+
+
+    ;; ---------------------------
+    ;; Object state
+    ;; ---------------------------
+
+    (AtPose ?o ?p)      ;; object o is at pose p
+
+
+    ;; ---------------------------
+    ;; Feasibility relations
+    ;; ---------------------------
+    (Clear ?p)          ;; to check if a pose is clear to place or not
+    (Kin ?q ?p)         ;; configuration q can manipulate pose p
+
   )
-  (:functions
-    (Distance ?q1 ?q2)
-  )
+
+
+  ;; ============================================================
+  ;; Move Action
+  ;; ============================================================
+
   (:action move
     :parameters (?q1 ?q2)
-    :precondition (and (Conf ?q1) (Conf ?q2)
-                       (AtConf ?q1) (CanMove))
-    :effect (and (AtConf ?q2)
-                 (not (AtConf ?q1)) (not (CanMove))
-                 (increase (total-cost) (Distance ?q1 ?q2)))
+    :precondition (and
+        (Conf ?q1)
+        (Conf ?q2)
+        (AtConf ?q1)
+        (CanMove)
+    )
+    :effect (and
+        (AtConf ?q2)
+        (not (AtConf ?q1))
+        (not (CanMove))
+    )
   )
+
+
+  ;; ============================================================
+  ;; Pick Action
+  ;; ============================================================
+
   (:action pick
-    :parameters (?b ?p ?q)
-    :precondition (and (Block ?b) (Kin ?q ?p)
-                       (AtConf ?q) (AtPose ?b ?p) (HandEmpty))
-    :effect (and (Holding ?b) (CanMove)
-                 (not (AtPose ?b ?p)) (not (HandEmpty))
-                 (increase (total-cost) 1))
+    :parameters (?o ?p ?q)
+    :precondition (and
+        (Object ?o)
+        (Pose ?p)
+        (Conf ?q)
+
+        (Kin ?q ?p)
+        (AtConf ?q)
+        (AtPose ?o ?p)
+        (HandEmpty)
+    )
+    :effect (and
+        (Holding ?o)
+        (CanMove)
+        (not (AtPose ?o ?p))
+        (Clear ?p)
+        (not (HandEmpty))
+    )
   )
+
+
+  ;; ============================================================
+  ;; Place Action
+  ;; ============================================================
+
   (:action place
-    :parameters (?b ?p ?q)
-    :precondition (and (Block ?b) (Kin ?q ?p)
-                       (AtConf ?q) (Holding ?b) (not (Unsafe ?p)))
-    :effect (and (AtPose ?b ?p) (HandEmpty) (CanMove)
-                 (not (Holding ?b))
-                 (increase (total-cost) 1))
-  )
-  (:derived (Unsafe ?p)
-    (exists (?b2 ?p2) (and (Pose ?p) (Block ?b2) (Pose ?p2)
-                          (not (CFree ?p ?p2))
-                          (AtPose ?b2 ?p2)))
+    :parameters (?o ?p ?q)
+    :precondition (and
+        (Object ?o)
+        (Pose ?p)
+        (Conf ?q)
+
+        (Kin ?q ?p)
+        (AtConf ?q)
+        (Holding ?o)
+        (Clear ?p)
+    )
+    :effect (and
+        (AtPose ?o ?p)
+        (HandEmpty)
+        (CanMove)
+        (not (Holding ?o))
+        (not (Clear ?p))
+    )
   )
 )

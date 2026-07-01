@@ -165,13 +165,13 @@ The implementation will be evaluated using metrics such as:
 To execute the reference example:
 
 ```bash
-python reference/discrete_tamp/run.py
+python -m examples.discrete_tamp.run
 ```
 
 To execute the discrete RoboCup domain:
 
 ```bash
-python domains/discrete2d/run.py
+python -m domains.discrete2d.run
 ```
 
 ---

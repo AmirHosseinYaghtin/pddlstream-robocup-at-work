@@ -9,6 +9,7 @@ def get_object_transport_problem():
     table1_slot1 = make_pose('table1', 1)
     table2_slot1 = make_pose('table2', 1)
     shelf1_slot1 = make_pose('shelf1', 1)
+    table1_slot2 = make_pose('table1', 2)
 
     initial_object_poses = {
         'obj0': table1_slot1,
@@ -21,13 +22,15 @@ def get_object_transport_problem():
     )
 
     goal_poses = {
-        'obj0': shelf1_slot1,
+        # 'obj0': shelf1_slot1,
+        'obj0': table2_slot1,
     }
 
     poses = [
         table1_slot1,
         table2_slot1,
         shelf1_slot1,
+        table1_slot2,
     ]
 
     return DiscreteTAMPProblem(initial, poses, goal_poses, objects)
