@@ -52,18 +52,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
   (:action pick
     :parameters (?r ?b ?p ?g ?q)
     :precondition (and (Robot ?r) (Kin ?b ?q ?p ?g)
@@ -74,6 +62,8 @@
                  (not (AtPose ?b ?p)) (not (HandEmpty ?r))
                  (not (CanManipulate ?r))
                  (increase (total-cost) (Cost))))
+
+
 
   (:action place
     :parameters (?r ?b ?p ?g ?q)
@@ -90,6 +80,8 @@
                  (not (CanManipulate ?r))
                  (increase (total-cost) (Cost)))
   )
+
+
 
   (:action cook
     :parameters (?b ?s)
