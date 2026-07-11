@@ -10,6 +10,12 @@
 
     (Robot ?r)
     (Object ?o)
+    (Furniture ?f)          ;; static: floor-level obstacle (table/shelf/box) that
+                            ;; blocks the ROBOT BASE only. Deliberately excluded
+                            ;; from arm collision checks -- the 2D abstraction
+                            ;; assumes the arm operates above furniture height, so
+                            ;; only its floor footprint matters, and only for base
+                            ;; motion/docking.
 
     (BaseConf ?q)           ;; a robot base configuration (x, y, theta)
     (ArmConf ?a)            ;; an arm joint configuration
@@ -40,8 +46,8 @@
                                       ;; collision-checked (vs. static map)
                                       ;; RRT path from bq1 to bq2
 
-    (ArmMotionFree ?aq1 ?at ?aq2)     ;; plan-arm-motion, not holding
-    (ArmMotionHolding ?aq1 ?at ?aq2 ?o ?g)
+    (ArmMotionFree ?bq ?aq1 ?at ?aq2) ;; plan-arm-motion, not holding
+    (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g)
                                       ;; plan-arm-motion while holding
                                       ;; object o with grasp g (different
                                       ;; swept geometry than free motion)
@@ -49,7 +55,7 @@
     (BaseCFree ?bt ?o2 ?p2)           ;; collision-free: base traj bt is
                                       ;; collision-free against object o2
                                       ;; parked at pose p2
-    (ArmCFree ?at ?o2 ?p2)            ;; collision-free: arm traj at is
+    (ArmCFree ?bq ?at ?o2 ?p2)        ;; collision-free: arm traj at is
                                       ;; collision-free against object o2
                                       ;; parked at pose p2
 
@@ -104,7 +110,7 @@
         (AtBaseConf ?r ?bq1)
         (CanMoveBase ?r)
         (forall (?o2 ?p2)
-          (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2))
+          (imply (and (or (Object ?o2) (Furniture ?o2)) (Pose ?o2 ?p2) (AtPose ?o2 ?p2))
                  (BaseCFree ?bt ?o2 ?p2)))
     )
     :effect (and
@@ -132,7 +138,7 @@
         (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
         (Dock ?o ?p ?bq)
         (IK ?o ?p ?g ?bq ?aq2)
-        (ArmMotionFree ?aq1 ?at ?aq2)
+        (ArmMotionFree ?bq ?aq1 ?at ?aq2)
         (AtBaseConf ?r ?bq)
         (AtArmConf ?r ?aq1)
         (AtPose ?o ?p)
@@ -140,7 +146,7 @@
         (CanMoveArm ?r)
         (forall (?o2 ?p2)
           (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2) (not (= ?o2 ?o)))
-                 (ArmCFree ?at ?o2 ?p2)))
+                 (ArmCFree ?bq ?at ?o2 ?p2)))
     )
     :effect (and
         (AtGrasp ?r ?o ?g)
@@ -165,14 +171,14 @@
         (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
         (Dock ?o ?p ?bq)
         (IK ?o ?p ?g ?bq ?aq2)
-        (ArmMotionHolding ?aq1 ?at ?aq2 ?o ?g)
+        (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g)
         (AtBaseConf ?r ?bq)
         (AtArmConf ?r ?aq1)
         (AtGrasp ?r ?o ?g)
         (CanMoveArm ?r)
         (forall (?o2 ?p2)
           (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2) (not (= ?o2 ?o)))
-                 (ArmCFree ?at ?o2 ?p2)))
+                 (ArmCFree ?bq ?at ?o2 ?p2)))
     )
     :effect (and
         (AtPose ?o ?p)

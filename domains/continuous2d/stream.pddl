@@ -76,10 +76,10 @@
   ;; used by pick (arm is empty on the way to the grasp config)
   ;; ============================================================
   (:stream s-arm-motion-free
-    :inputs (?aq1 ?aq2)
-    :domain (and (ArmConf ?aq1) (ArmConf ?aq2))
+    :inputs (?bq ?aq1 ?aq2)
+    :domain (and (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2))
     :outputs (?at)
-    :certified (and (ArmMotionFree ?aq1 ?at ?aq2) (ArmTraj ?at))
+    :certified (and (ArmMotionFree ?bq ?aq1 ?at ?aq2) (ArmTraj ?at))
   )
 
   ;; ============================================================
@@ -89,10 +89,10 @@
   ;; case above)
   ;; ============================================================
   (:stream s-arm-motion-holding
-    :inputs (?aq1 ?aq2 ?o ?g)
-    :domain (and (ArmConf ?aq1) (ArmConf ?aq2) (Grasp ?o ?g))
+    :inputs (?bq ?aq1 ?aq2 ?o ?g)
+    :domain (and (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (Grasp ?o ?g))
     :outputs (?at)
-    :certified (and (ArmMotionHolding ?aq1 ?at ?aq2 ?o ?g) (ArmTraj ?at))
+    :certified (and (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g) (ArmTraj ?at))
   )
 
   ;; ============================================================
@@ -111,9 +111,9 @@
   ;; Test stream, called inside pick's and place's forall/imply.
   ;; ============================================================
   (:stream t-arm-cfree
-    :inputs (?at ?o2 ?p2)
-    :domain (and (ArmTraj ?at) (Pose ?o2 ?p2))
-    :certified (ArmCFree ?at ?o2 ?p2)
+    :inputs (?bq ?at ?o2 ?p2)
+    :domain (and (BaseConf ?bq) (ArmTraj ?at) (Pose ?o2 ?p2))
+    :certified (ArmCFree ?bq ?at ?o2 ?p2)
   )
 
   ;; ============================================================
