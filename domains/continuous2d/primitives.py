@@ -21,7 +21,7 @@ ArmTraj = namedtuple('ArmTraj', ['waypoints', 'held_object', 'held_grasp'])  # l
 Region = namedtuple('Region', ['lower', 'upper'])  # 2D axis-aligned box, e.g. table/shelf/box footprint
 
 TAMPState = namedtuple('TAMPState', ['base_conf', 'arm_conf', 'holding', 'tray', 'object_poses'])
-TAMPProblem = namedtuple('TAMPProblem', ['initial', 'regions', 'object_types', 'goal_regions'])
+TAMPProblem = namedtuple('TAMPProblem', ['initial', 'regions', 'object_types', 'goal_regions', 'furniture'])
 
 # =====================================================================
 # Geometry constants
