@@ -27,7 +27,7 @@ def get_pick_and_place_problem():
     ]
 
     initial_object_poses = {
-        'cube1': (1.0, 0.0),  # inside table1
+        'cube1': (0.8, 0.0),  # inside table1
     }
 
     initial = TAMPState(

@@ -88,9 +88,9 @@
   )
 
   (:functions
-    (Cost)                  ;; fixed per-action cost for pick/place/etc.
-    (Dist ?bq1 ?bq2)        ;; base path length between two base confs
-    (ArmDist ?aq1 ?aq2)     ;; arm joint-space distance between two confs
+    (Cost)                    ;; fixed per-action cost for pick/place/etc.
+    (Dist ?bq1 ?bq2)          ;; base path length between two base confs
+    (ArmDist ?aq1 ?aq2)       ;; arm joint-space distance between two confs
     (ExtraBaseCost ?bq1 ?bq2) ;; optional penalty for "unnecessary" base
                               ;; travel, supplied by the same stream that
                               ;; certifies BaseMotion

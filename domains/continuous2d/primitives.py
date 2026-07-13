@@ -29,8 +29,8 @@ TAMPProblem = namedtuple('TAMPProblem', ['initial', 'regions', 'object_types', '
 
 BASE_RADIUS = 0.22            # circular footprint approximation of the Waffle base
 
-LINK_1 = 0.13
-LINK_2 = 0.12
+LINK_1 = 0.23
+LINK_2 = 0.22
 ARM_REACH_MAX = LINK_1 + LINK_2
 ARM_REACH_MIN = abs(LINK_1 - LINK_2)
 DOCK_MARGIN = 0.02
