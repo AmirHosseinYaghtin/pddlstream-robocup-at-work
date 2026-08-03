@@ -22,8 +22,15 @@ def get_pick_and_place_problem():
         'table2': Region(lower=(-1.30, -0.30), upper=(-0.70, 0.30)),
     }
 
+    table1_center, table1_size = region_as_furniture(regions['table1'])
+    table2_center, table2_size = region_as_furniture(regions['table2'])
+    OBJECT_SIZES['table1'] = table1_size
+    OBJECT_SIZES['table2'] = table2_size
+
     furniture = [
         ('shelf0', (0.0, 1.4)),
+        ('table1', table1_center),
+        ('table2', table2_center),
     ]
 
     initial_object_poses = {

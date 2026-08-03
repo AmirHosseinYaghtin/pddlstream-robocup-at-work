@@ -88,7 +88,8 @@
   )
 
   (:functions
-    (Cost)                    ;; fixed per-action cost for pick/place/etc.
+    (Cost)                    ;; fixed per-action cost for pick/place/move.
+    (StowCost)                ;; smaller cost for stow/unstow actions
     (Dist ?bq1 ?bq2)          ;; base path length between two base confs
     (ArmDist ?aq1 ?aq2)       ;; arm joint-space distance between two confs
     (ExtraBaseCost ?bq1 ?bq2) ;; optional penalty for "unnecessary" base
@@ -212,7 +213,7 @@
         (HandEmpty ?r)
         (not (TraySlotFree ?r ?s))
         (not (AtGrasp ?r ?o ?g))
-        (increase (total-cost) (Cost))
+        (increase (total-cost) (StowCost))
     )
   )
 
@@ -228,7 +229,7 @@
         (TraySlotFree ?r ?s)
         (not (OnTray ?r ?o ?s))
         (not (HandEmpty ?r))
-        (increase (total-cost) (Cost))
+        (increase (total-cost) (StowCost))
     )
   )
 

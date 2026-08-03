@@ -76,6 +76,13 @@ DOCK_MAX_ATTEMPTS = 1000   # bounded so a genuinely unreachable object ends
 # Object geometry helpers
 # =====================================================================
 
+def resolve_type(object_types, o):
+    """Map a movable-object instance symbol to its declared type for
+    shared-geometry lookups (OBJECT_SIZES etc). Furniture entries pass
+    their type name directly as the instance (no separate type layer
+    for furniture), so .get(o, o) leaves those untouched."""
+    return object_types.get(o, o)
+
 def get_object_size(obj_type):
     return np.array(OBJECT_SIZES.get(obj_type, DEFAULT_OBJECT_SIZE))
 
@@ -121,6 +128,15 @@ def compute_default_bounds(regions, margin=1.0):
     return tuple(lower), tuple(upper)
 
 
+def region_as_furniture(region):
+    """Derive a floor-level obstacle box from a placement Region, so a
+    table/shelf surface is both a valid Placeable target (arm reaches
+    over the top) AND a Furniture obstacle that blocks the base --
+    matching the Furniture predicate's documented semantics."""
+    center = tuple((np.array(region.lower) + np.array(region.upper)) / 2.)
+    size = tuple(np.array(region.upper) - np.array(region.lower))
+    return center, size
+
 # =====================================================================
 # s-grasp : sample-grasp(object_type)
 # =====================================================================
@@ -145,25 +161,28 @@ def sample_region_pose(obj_type, region):
     return float(np.random.uniform(lo[0], hi[0])), float(np.random.uniform(lo[1], hi[1]))
 
 
-def get_region_gen(regions):
+def get_region_gen(regions, object_types):
     def gen(obj, reg):
-        region = regions[reg]
         # Ignores other already-placed *movable* objects on purpose --
         # rejection happens later via t-arm-cfree/t-base-cfree during
         # search. Furniture obstacles aren't relevant here since this
         # samples INSIDE a region's own surface, not through free space.
+
+        region = regions[reg]
+        obj_type = resolve_type(object_types, obj)
         while True:
-            p = sample_region_pose(obj, region)
+            p = sample_region_pose(obj_type, region)
             if p is None:
                 return
             yield (p,)
     return gen
 
 
-def get_region_test(regions):
+def get_region_test(regions, object_types):
     def test(obj, pose, reg):
         region = regions[reg]
-        lower, upper = get_object_box(obj, pose)
+        obj_type = resolve_type(object_types, obj)
+        lower, upper = get_object_box(obj_type, pose)
         return np.less_equal(region.lower, lower).all() and np.less_equal(upper, region.upper).all()
     return test
 
@@ -378,20 +397,23 @@ def get_arm_motion_holding_fn():
 # t-base-cfree / t-arm-cfree : collision-free(...) test streams
 # =====================================================================
 
-def get_base_cfree_test():
+def get_base_cfree_test(object_types):
     def test(bt, obj2, pose2):
-        box2 = get_object_box(obj2, pose2)
+        obj2_type = resolve_type(object_types, obj2)
+        box2 = get_object_box(obj2_type, pose2)
         return not any(circle_box_overlap(base_point(bq), BASE_RADIUS, box2) for bq in bt.waypoints)
     return test
 
 
-def get_arm_cfree_test():
+def get_arm_cfree_test(object_types):
     def test(bq, at, obj2, pose2):
-        box2 = get_object_box(obj2, pose2)
+        obj2_type = resolve_type(object_types, obj2)
+        box2 = get_object_box(obj2_type, pose2)
         for aq in at.waypoints:
             ee_world = forward_kinematics(aq, bq)
             if at.held_object is not None:
-                held_box = get_object_box(at.held_object, ee_world)
+                held_type = resolve_type(object_types, at.held_object)
+                held_box = get_object_box(held_type, ee_world)
                 if boxes_overlap(held_box, box2):
                     return False
             elif circle_box_overlap(ee_world, GRIPPER_RADIUS, box2):
@@ -437,18 +459,18 @@ def get_extra_base_cost_fn():
 #     compute_default_bounds(regions) if not given.
 # =====================================================================
 
-def get_stream_map(regions, static_obstacles=None, world_bounds=None):
+def get_stream_map(regions, object_types, static_obstacles=None, world_bounds=None):
     return {
         's-grasp': get_grasp_gen(),
-        's-region': get_region_gen(regions),
-        't-region': get_region_test(regions),
+        's-region': get_region_gen(regions,object_types),
+        't-region': get_region_test(regions, object_types),
         's-dock': get_dock_gen(static_obstacles),
         's-ik': get_ik_fn(),
         's-base-motion': get_base_motion_fn(static_obstacles, world_bounds, regions),
         's-arm-motion-free': get_arm_motion_free_fn(),
         's-arm-motion-holding': get_arm_motion_holding_fn(),
-        't-base-cfree': get_base_cfree_test(),
-        't-arm-cfree': get_arm_cfree_test(),
+        't-base-cfree': get_base_cfree_test(object_types),
+        't-arm-cfree': get_arm_cfree_test(object_types),
     }
 
 

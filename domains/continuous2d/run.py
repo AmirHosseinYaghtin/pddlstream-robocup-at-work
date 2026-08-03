@@ -29,12 +29,17 @@ from .primitives import (
     get_arm_distance_fn,
     get_extra_base_cost_fn,
     PICK_PLACE_COST,
+    STOW_UNSTOW_COST,
 )
 
 from .problems.pick_place import get_pick_and_place_problem
+from .problems.narrow_corridor import get_corridor_problem
+from .problems.multi_object import get_multi_object_problem
 
 PROBLEMS = [
     get_pick_and_place_problem,
+    get_corridor_problem,
+    get_multi_object_problem,
 ]
 
 ROBOT = 'robot0'  # single-robot domain for now; matches problems/pick_place.py
@@ -48,7 +53,7 @@ def create_problem(tamp_problem):
     init = [
         Equal((TOTAL_COST,), 0),
         Equal(('Cost',), PICK_PLACE_COST),  # flat per-action cost; see stream.pddl note
-
+        Equal(('StowCost',), STOW_UNSTOW_COST),
         ('Robot', ROBOT),
         ('BaseConf', initial.base_conf),
         ('ArmConf', initial.arm_conf),
@@ -95,15 +100,15 @@ def pddlstream_from_tamp(tamp_problem, collisions=True):
 
     stream_map = {
         's-grasp': from_gen_fn(get_grasp_gen()),
-        's-region': from_gen_fn(get_region_gen(regions)),
-        't-region': from_test(get_region_test(regions)),
+        's-region': from_gen_fn(get_region_gen(regions, tamp_problem.object_types)),
+        't-region': from_test(get_region_test(regions, tamp_problem.object_types)),
         's-dock': from_gen_fn(get_dock_gen(static_obstacles)),
         's-ik': from_fn(get_ik_fn()),
         's-base-motion': from_fn(get_base_motion_fn(static_obstacles, world_bounds, regions)),
         's-arm-motion-free': from_fn(get_arm_motion_free_fn()),
         's-arm-motion-holding': from_fn(get_arm_motion_holding_fn()),
-        't-base-cfree': from_test(get_base_cfree_test() if collisions else (lambda *args: True)),
-        't-arm-cfree': from_test(get_arm_cfree_test() if collisions else (lambda *args: True)),
+        't-base-cfree': from_test(get_base_cfree_test(tamp_problem.object_types) if collisions else (lambda *args: True)),
+        't-arm-cfree': from_test(get_arm_cfree_test(tamp_problem.object_types) if collisions else (lambda *args: True)),
 
         # :function entries are raw callables, not wrapped -- pddlstream
         # calls them directly to score a cost, same as official
@@ -180,12 +185,10 @@ def main():
     if plan is None:
         return
 
-    # viewer.py isn't written yet -- next file to build. Once it exposes
-    # an apply_plan(tamp_problem, plan) like domains/discrete2d/viewer.py
-    # does, uncomment this:
-    #
-    # from .viewer import apply_plan
-    # apply_plan(tamp_problem, plan)
+
+
+    from .viewer import apply_plan
+    apply_plan(tamp_problem, plan)
 
 
 if __name__ == '__main__':
