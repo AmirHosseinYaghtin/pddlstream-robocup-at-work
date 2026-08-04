@@ -89,14 +89,14 @@ def create_problem(tamp_problem):
     return init, goal
 
 
-def pddlstream_from_tamp(tamp_problem, collisions=True):
+def pddlstream_from_tamp(tamp_problem, collisions=True, default_world_bound_margin=1.0):
     domain_pddl = read(get_file_path(__file__, 'domain.pddl'))
     stream_pddl = read(get_file_path(__file__, 'stream.pddl'))
     constant_map = {}
 
     regions = tamp_problem.regions
     static_obstacles = compute_obstacle_boxes(tamp_problem.furniture)
-    world_bounds = compute_default_bounds(regions)
+    world_bounds = compute_default_bounds(regions, default_world_bound_margin)
 
     stream_map = {
         's-grasp': from_gen_fn(get_grasp_gen()),
@@ -127,6 +127,7 @@ def pddlstream_from_tamp(tamp_problem, collisions=True):
 def initialize(parser):
     parser.add_argument('-c', '--cfree', action='store_true', help='Disables collision checking')
     parser.add_argument('-p', '--problem', default='get_pick_and_place_problem', help='The name of the problem to solve')
+    parser.add_argument('-wm', '--worldmargin', default=1.0, type=float, help='Default world bound margin')
     args = parser.parse_args()
     print('Arguments:', args)
 
@@ -167,7 +168,7 @@ def main():
         'ExtraBaseCost': FunctionInfo(eager=False, defer_fn=defer_fn),
     }
 
-    pddlstream_problem = pddlstream_from_tamp(tamp_problem, collisions=not args.cfree)
+    pddlstream_problem = pddlstream_from_tamp(tamp_problem, collisions=not args.cfree, default_world_bound_margin=args.worldmargin)
     dump_pddlstream(pddlstream_problem)
 
     solution = solve(

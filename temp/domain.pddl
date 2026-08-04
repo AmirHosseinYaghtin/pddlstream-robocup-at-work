@@ -211,6 +211,7 @@
     :effect (and
         (OnTray ?r ?o ?s)
         (HandEmpty ?r)
+        (CanMoveArm ?r)
         (not (TraySlotFree ?r ?s))
         (not (AtGrasp ?r ?o ?g))
         (increase (total-cost) (StowCost))
@@ -227,6 +228,7 @@
     :effect (and
         (AtGrasp ?r ?o ?g)
         (TraySlotFree ?r ?s)
+        (CanMoveArm ?r)
         (not (OnTray ?r ?o ?s))
         (not (HandEmpty ?r))
         (increase (total-cost) (StowCost))

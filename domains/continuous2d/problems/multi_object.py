@@ -11,7 +11,6 @@ from ..primitives import *
 
 
 def get_multi_object_problem():
-    objects = ['cube1', 'cube2', 'cube3']
     object_types = {'cube1': 'cube', 'cube2': 'cube', 'cube3': 'cube'}
     OBJECT_SIZES['cube'] = (0.05, 0.05)
     OBJECT_SIZES['shelf0'] = (0.30, 1.00)

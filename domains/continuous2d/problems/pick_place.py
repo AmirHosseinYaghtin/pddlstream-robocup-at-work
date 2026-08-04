@@ -11,7 +11,6 @@ from ..primitives import *
 
 
 def get_pick_and_place_problem():
-    objects = ['cube1']
     object_types = {'cube1': 'cube1'}
 
     OBJECT_SIZES['cube1'] = (0.05, 0.05)
