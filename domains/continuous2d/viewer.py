@@ -314,6 +314,42 @@ def animate_action(viewer, state, action, step_idx=None, step_pause=0.03):
             plt.pause(step_pause)
         return grasped_state._replace(arm_conf=aq1)
 
+    if name == 'pick_and_stow':
+        # Unpack arguments for both pick and stow
+        _r, o, p, g, bq, aq1, aq2, at, s = args
+
+        # 1. Reach out to the grasp config (object still resting at p)
+        for wp in at.waypoints:
+            viewer.draw_state(state._replace(base_conf=bq, arm_conf=wp), status=status)
+            plt.pause(step_pause)
+
+        # 2. Grasp: object leaves object_poses, enters the gripper
+        object_poses = dict(state.object_poses)
+        del object_poses[o]
+        grasped_state = state._replace(
+            base_conf=bq, arm_conf=aq2, holding=(o, g), object_poses=object_poses
+        )
+        viewer.draw_state(grasped_state, status=status)
+        plt.pause(step_pause)
+
+        # 3. Retract back to aq1, carrying the object
+        for wp in reversed(at.waypoints):
+            viewer.draw_state(grasped_state._replace(arm_conf=wp), status=status)
+            plt.pause(step_pause)
+
+        # 4. Stow: Object leaves gripper, enters the tray
+        tray = dict(grasped_state.tray)
+        tray[o] = s
+
+        # Final state: arm is back at aq1, holding is None, object is in tray
+        final_state = grasped_state._replace(
+            arm_conf=aq1, holding=None, tray=tray
+        )
+        viewer.draw_state(final_state, status=status)
+        plt.pause(step_pause)
+
+        return final_state
+
     if name == 'place':
         _r, o, p, g, bq, aq1, aq2, at = args
         # reach out to the place config, still holding

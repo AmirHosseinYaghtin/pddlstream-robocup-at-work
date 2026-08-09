@@ -17,7 +17,8 @@ def get_multi_object_problem():
 
     regions = {
         'table1': Region(lower=(0.70, -0.30), upper=(1.30, 0.30)),
-        'table2': Region(lower=(-1.30, -0.30), upper=(-0.70, 0.30)),
+        'table2': Region(lower=(-3.30, -0.30), upper=(-2.70, 0.30)),
+        # 'table2': Region(lower=(-1.30, -0.30), upper=(-0.70, 0.30)),
     }
 
     table1_center, table1_size = region_as_furniture(regions['table1'])

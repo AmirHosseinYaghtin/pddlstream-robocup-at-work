@@ -12,6 +12,10 @@ from pddlstream.language.function import FunctionInfo
 from pddlstream.language.external import defer_shared
 from pddlstream.utils import read, get_file_path, INF
 
+
+from pddlstream.algorithms.constraints import PlanConstraints, WILD
+
+
 from .primitives import (
     compute_obstacle_boxes,
     compute_default_bounds,
@@ -89,8 +93,8 @@ def create_problem(tamp_problem):
     return init, goal
 
 
-def pddlstream_from_tamp(tamp_problem, collisions=True, default_world_bound_margin=1.0):
-    domain_pddl = read(get_file_path(__file__, 'domain.pddl'))
+def pddlstream_from_tamp(tamp_problem, collisions=True, default_world_bound_margin=1.0, merge_pick_and_stow=True):
+    domain_pddl = read(get_file_path(__file__, 'domain_merged.pddl')) if merge_pick_and_stow else read(get_file_path(__file__, 'domain.pddl'))
     stream_pddl = read(get_file_path(__file__, 'stream.pddl'))
     constant_map = {}
 
@@ -128,6 +132,10 @@ def initialize(parser):
     parser.add_argument('-c', '--cfree', action='store_true', help='Disables collision checking')
     parser.add_argument('-p', '--problem', default='get_pick_and_place_problem', help='The name of the problem to solve')
     parser.add_argument('-wm', '--worldmargin', default=1.0, type=float, help='Default world bound margin')
+
+    parser.add_argument('-s', '--skeleton', action='store_true', help='Use hard skeleton')
+    parser.add_argument('-ma', '--mergeactions', action='store_true', help='Merge pick and stow actions')
+
     args = parser.parse_args()
     print('Arguments:', args)
 
@@ -146,6 +154,29 @@ def dump_pddlstream(pddlstream_problem):
     print('Init:', pddlstream_problem.init)
     print('Goal:', pddlstream_problem.goal)
 
+
+WILD = '*'
+TIGHT_SKELETON = [
+    ('move_base', ['robot0', '?q0', WILD, '?q1']),
+    ('pick', ['robot0', 'cube1', '?p1', '?g1', '?q1', '?aq_home', '?aq_grasp1', WILD]),
+    ('stow', ['robot0', 'cube1', '?g1', 'slot1']),
+    ('move_base', ['robot0', '?q1', WILD, '?q2']),
+    ('pick', ['robot0', 'cube2', '?p2', '?g2', '?q2', '?aq_home', '?aq_grasp2', WILD]),
+    ('stow', ['robot0', 'cube2', '?g2', 'slot2']),
+    ('move_base', ['robot0', '?q2', WILD, '?q3']),
+    ('pick', ['robot0', 'cube3', '?p3', '?g3', '?q3', '?aq_home', '?aq_grasp3', WILD]),
+
+    ('move_base', ['robot0', '?q3', WILD, '?q4']),
+    ('place', ['robot0', 'cube3', '?p_dest3', '?g3', '?q4', '?aq_home', '?aq_place3', WILD]),
+
+    ('move_base', ['robot0', '?q4', WILD, '?q5']),
+    ('unstow', ['robot0', 'cube2', '?g2', 'slot2']),
+    ('place', ['robot0', 'cube2', '?p_dest2', '?g2', '?q5', '?aq_home', '?aq_place2', WILD]),
+
+    ('move_base', ['robot0', '?q5', WILD, '?q6']),
+    ('unstow', ['robot0', 'cube1', '?g1', 'slot1']),
+    ('place', ['robot0', 'cube1', '?p_dest1', '?g1', '?q6', '?aq_home', '?aq_place1', WILD]),
+]
 
 def main():
     parser = create_parser()
@@ -168,17 +199,26 @@ def main():
         'ExtraBaseCost': FunctionInfo(eager=False, defer_fn=defer_fn),
     }
 
-    pddlstream_problem = pddlstream_from_tamp(tamp_problem, collisions=not args.cfree, default_world_bound_margin=args.worldmargin)
+    skeletons = [TIGHT_SKELETON] if args.skeleton else None
+    constraints = PlanConstraints(skeletons=skeletons,
+                                  # skeletons=[],
+                                  # skeletons=[skeleton, []],
+                                  exact=True,
+                                  max_cost=INF)
+
+    pddlstream_problem = pddlstream_from_tamp(tamp_problem, collisions=not args.cfree, default_world_bound_margin=args.worldmargin, merge_pick_and_stow=args.mergeactions)
     dump_pddlstream(pddlstream_problem)
 
     solution = solve(
         pddlstream_problem,
         algorithm=args.algorithm,
+        constraints=constraints,
+        # planner='dijkstra',
         unit_costs=args.unit,
-        max_time=120,
+        max_time=150,
         success_cost=INF,
         debug=False,
-        verbose=True,
+        verbose=False,
     )
 
     print_solution(solution)

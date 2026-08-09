@@ -53,10 +53,10 @@ GRASP_ANGLES = [0., np.pi / 2, np.pi, -np.pi / 2]
 MOVE_BASE_COST = 5.
 COST_PER_BASE_DIST = 1.
 COST_PER_ARM_DIST = 1.
-UNNECESSARY_BASE_DIST_THRESHOLD = 0.05
-UNNECESSARY_BASE_PENALTY = 50.
+UNNECESSARY_BASE_DIST_THRESHOLD = 0.0 # 0.05
+UNNECESSARY_BASE_PENALTY = 0.0 # 50.
 PICK_PLACE_COST = 2.
-STOW_UNSTOW_COST = 0.5
+STOW_UNSTOW_COST = 0.0 # 0.5
 
 # ---------------------------------------------------------------------
 # RRT tuning (base motion planner -- see s-base-motion below)
