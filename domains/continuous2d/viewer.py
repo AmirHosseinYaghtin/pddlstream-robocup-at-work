@@ -369,6 +369,39 @@ def animate_action(viewer, state, action, step_idx=None, step_pause=0.03):
             plt.pause(step_pause)
         return placed_state._replace(arm_conf=aq1)
 
+    if name == 'unstow_and_place':
+        # Unpack arguments for both unstow and place
+        _r, o, p, g, bq, aq1, aq2, at, s = args
+
+        # 1. Unstow: Object leaves the tray, enters the gripper
+        tray = dict(state.tray)
+        if o in tray:
+            del tray[o]
+        unstowed_state = state._replace(holding=(o, g), tray=tray)
+        viewer.draw_state(unstowed_state, status=status)
+        plt.pause(step_pause)
+
+        # 2. Reach out to the place config, still holding the object
+        for wp in at.waypoints:
+            viewer.draw_state(unstowed_state._replace(base_conf=bq, arm_conf=wp), status=status)
+            plt.pause(step_pause)
+
+        # 3. Release: object enters object_poses at p, gripper empties
+        object_poses = dict(unstowed_state.object_poses)
+        object_poses[o] = p
+        placed_state = unstowed_state._replace(
+            base_conf=bq, arm_conf=aq2, holding=None, object_poses=object_poses)
+        viewer.draw_state(placed_state, status=status)
+        plt.pause(step_pause)
+
+        # 4. Retract back to aq1, empty-handed
+        for wp in reversed(at.waypoints):
+            viewer.draw_state(placed_state._replace(arm_conf=wp), status=status)
+            plt.pause(step_pause)
+
+        # Final state: arm is back at aq1, holding is None, object is at pose p
+        return placed_state._replace(arm_conf=aq1)
+
     if name == 'stow':
         _r, o, _g, s = args
         tray = dict(state.tray)

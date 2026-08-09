@@ -175,35 +175,6 @@
   ;; ============================================================
   ;; place : place the currently-gripped object at a target pose
   ;; ============================================================
-
-  (:action place
-    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at)
-    :precondition (and
-        (Robot ?r) (Object ?o)
-        (Pose ?o ?p) (Grasp ?o ?g)
-        (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
-        (Dock ?o ?p ?bq)
-        (IK ?o ?p ?g ?bq ?aq2)
-        (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g)
-        (AtBaseConf ?r ?bq)
-        (AtArmConf ?r ?aq1)
-        (AtGrasp ?r ?o ?g)
-        (CanMoveArm ?r)
-        (forall (?o2 ?p2)
-          (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2) (not (= ?o2 ?o)))
-                 (ArmCFree ?bq ?at ?o2 ?p2)))
-    )
-    :effect (and
-        (AtPose ?o ?p)
-        (HandEmpty ?r)
-        (not (AtGrasp ?r ?o ?g))
-        (not (CanMoveArm ?r))
-        (CanMoveBase ?r)
-        (increase (total-cost) (ArmDist ?aq1 ?aq2))
-        (increase (total-cost) (Cost))
-    )
-  )
-
   ;; ============================================================
   ;; stow / unstow : move a held object on/off the tray
   ;; Purely a bookkeeping transfer (arm already holds the object
@@ -212,23 +183,39 @@
   ;; let the robot free its gripper to pick up to 2 more objects
   ;; before it must place any of them.
   ;; ============================================================
-
-  (:action unstow
-    :parameters (?r ?o ?g ?s)
+  (:action unstow_and_place
+    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at ?s)
     :precondition (and
-        (Robot ?r) (Object ?o) (Grasp ?o ?g) (TraySlot ?s)
+        (Robot ?r) (Object ?o)
+        (Pose ?o ?p) (Grasp ?o ?g) (TraySlot ?s)
+        (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
         (OnTray ?r ?o ?s)
         (HandEmpty ?r)
+        (Dock ?o ?p ?bq)
+        (IK ?o ?p ?g ?bq ?aq2)
+        (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g)
+        (AtBaseConf ?r ?bq)
+        (AtArmConf ?r ?aq1)
+        (CanMoveArm ?r)
+        (forall (?o2 ?p2)
+          (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2) (not (= ?o2 ?o)))
+                 (ArmCFree ?bq ?at ?o2 ?p2)))
     )
     :effect (and
-        (AtGrasp ?r ?o ?g)
+        (AtPose ?o ?p)
+        (HandEmpty ?r)
         (TraySlotFree ?r ?s)
-        (CanMoveArm ?r)
+        (not (AtGrasp ?r ?o ?g))
+        (not (CanMoveArm ?r))
+        (CanMoveBase ?r)
         (not (OnTray ?r ?o ?s))
-        (not (HandEmpty ?r))
+        (increase (total-cost) (ArmDist ?aq1 ?aq2))
+        (increase (total-cost) (Cost))
         (increase (total-cost) (StowCost))
     )
   )
+
+
 
   ;; ============================================================
   ;; Derived predicates

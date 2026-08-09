@@ -213,7 +213,7 @@ def main():
         pddlstream_problem,
         algorithm=args.algorithm,
         constraints=constraints,
-        # planner='dijkstra',
+        # planner='max-astar',
         unit_costs=args.unit,
         max_time=150,
         success_cost=INF,
