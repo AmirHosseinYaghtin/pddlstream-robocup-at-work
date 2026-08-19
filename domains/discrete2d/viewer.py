@@ -16,7 +16,6 @@ MAX_COLS = 10
 COLORS = ['red', 'orange', 'yellow', 'green',
           'blue', 'violet', 'white', 'black']
 
-
 # --------------------------------------------------
 # Utility: symbolic pose -> (row, col)
 # --------------------------------------------------
@@ -55,10 +54,9 @@ def conf_to_pose(conf):
     return conf[2:]  # remove "q_"
 
 
-
 class DiscreteTAMPViewer(object):
-    def __init__(self, rows, cols, width=500, height=250, side=25,
-                 block_buffer=10, title='Grid', background='tan', draw_fingers=False):
+    def __init__(self, rows, cols, width=600, height=350, side=25,
+                 block_buffer=10, title='Discrete TAMP Environment', background='tan', draw_fingers=False):
         assert (rows <= MAX_ROWS)
         assert (cols <= MAX_COLS)
 
@@ -79,62 +77,93 @@ class DiscreteTAMPViewer(object):
         self.draw_fingers = draw_fingers
         self.cells = {}
         self.robot = []
-        self.draw_environment()
 
+        # Calculate base offsets
+        table_width = self.cols * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer
+        table_height = self.rows * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer
+        border_buffer = 50
+
+        self.table_x1 = self.width / 2 - table_width / 2
+        self.table_y1 = self.height - table_height - border_buffer
+
+        self.draw_environment()
 
     def update(self):
         self.tk.update_idletasks()
         self.tk.update()
 
     def transform_r(self, r):
-        return self.table_y1 + r * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer + self.side / 2
+        row_spacing = self.side + 2 * self.block_buffer + 60
+        offset_y = 80
+        return self.table_y1 + r * row_spacing + 2 * self.block_buffer + self.side / 2 - offset_y
 
     def transform_c(self, c):
-        # assert r >= 0 and r < self.width
-        return self.table_x1 + c * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer + self.side / 2
+        col_spacing = self.side + 2 * self.block_buffer + 10
+        return self.table_x1 + c * col_spacing + 2 * self.block_buffer + self.side / 2
 
-    def draw_environment(self, table_color='lightgrey', bin_color='grey'):
-        table_width = self.cols * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer
-        table_height = self.rows * (self.side + 2 * self.block_buffer) + 2 * self.block_buffer
+    def draw_environment(self):
+        self.environment = []
 
-        border_buffer = 50
-        #self.table_x1 = border_buffer
-        self.table_y1 = self.height - table_height - border_buffer
-        self.table_x1 = self.width/2-table_width/2
-        #self.table_y1 = self.height/2-table_height/2
+        # Group columns by surface name
+        surfaces = {}
+        for pose, (r, c) in POSE_TO_GRID_MAP.items():
+            try:
+                surf_name = pose.split('_slot')[0]
+            except:
+                surf_name = "unknown"
+            if surf_name not in surfaces:
+                surfaces[surf_name] = {'row': r, 'cols': []}
+            surfaces[surf_name]['cols'].append(c)
 
-        bin_width = 20
-        self.environment = [
-            self.canvas.create_rectangle(self.table_x1, self.table_y1,
-                                         self.table_x1 + table_width, self.table_y1 + table_height,
-                                         fill=table_color, outline='black', width=2),
-            self.canvas.create_rectangle(self.table_x1 - bin_width, self.table_y1,
-                                         self.table_x1, self.table_y1 + table_height,
-                                         fill=bin_color, outline='black', width=2),
-            self.canvas.create_rectangle(self.table_x1 + table_width, self.table_y1,
-                                         self.table_x1 + table_width + bin_width, self.table_y1 + table_height,
-                                         fill=bin_color, outline='black', width=2),
-            self.canvas.create_rectangle(self.table_x1, self.table_y1 + table_height,
-                                         self.table_x1 + table_width, self.table_y1 + table_height + bin_width,
-                                         fill=bin_color, outline='black', width=2),
-            self.canvas.create_rectangle(self.table_x1 - bin_width, self.table_y1 + table_height,
-                                         self.table_x1 + table_width + bin_width,
-                                         self.table_y1 + table_height + bin_width,
-                                         fill=bin_color, outline='black', width=2),
-        ]
+        cell_width = (self.side + 2 * self.block_buffer + 10)
+        surface_height = cell_width + 10
 
-        pose_radius = 2
-        for r in range(self.rows):
-            for c in range(self.cols):
+        for surf_name, info in surfaces.items():
+            r = info['row']
+            cols = info['cols']
+
+            min_c = min(cols)
+            max_c = max(cols)
+
+            y_center = self.transform_r(r)
+
+            x_center_min = self.transform_c(min_c)
+            x_center_max = self.transform_c(max_c)
+
+            # Dimensions of the specific surface
+            x_start = x_center_min - cell_width / 2
+            x_end = x_center_max + cell_width / 2
+            y_start = y_center - surface_height / 2
+            y_end = y_center + surface_height / 2
+
+            color = 'lightgrey' if r == 0 else 'saddlebrown'
+
+            self.environment.append(
+                self.canvas.create_rectangle(x_start, y_start, x_end, y_end,
+                                             fill=color, outline='black', width=2)
+            )
+
+            self.environment.append(
+                self.canvas.create_text((x_start + x_end) / 2, y_end + 10, text=surf_name,
+                                        font=('Arial', 10, 'bold'), anchor='n')
+            )
+
+            # Draw slots
+            pose_radius = 3
+            for c in cols:
                 x = self.transform_c(c)
-                y = self.transform_r(r)
-                self.environment.append(self.canvas.create_oval(x - pose_radius, y - pose_radius,
-                                                                x + pose_radius, y + pose_radius, fill='black'))
-
+                self.environment.append(
+                    self.canvas.create_oval(x - pose_radius, y_center - pose_radius,
+                                            x + pose_radius, y_center + pose_radius,
+                                            fill='black')
+                )
+                self.environment.append(
+                    self.canvas.create_text(x, y_center + 18, text=f"S{c - min_c + 1}",
+                                            font=('Arial', 7), fill='black')
+                )
     def draw_robot(self, r, c, color='yellow'):
-        # TODO - could also visualize as top grasps instead of side grasps
-        grasp_buffer = 3 # 0 | 3 | 5
-        finger_length = self.side + grasp_buffer  # + self.block_buffer
+        grasp_buffer = 3
+        finger_length = self.side + grasp_buffer
         finger_width = 10
         gripper_length = 20
         if self.draw_fingers:
@@ -147,6 +176,7 @@ class DiscreteTAMPViewer(object):
         x = self.transform_c(c)
         y = self.transform_r(r) - self.side / 2 - gripper_length / 2 - grasp_buffer
         finger_x = gripper_width / 2 - finger_width / 2
+
         self.robot = [
             self.canvas.create_rectangle(x - stem_width / 2., y - stem_length,
                                          x + stem_width / 2., y,
@@ -165,7 +195,6 @@ class DiscreteTAMPViewer(object):
                                              fill=color, outline='black', width=2),
             ]
 
-
     def draw_block(self, r, c, name='', color='red'):
         x = self.transform_c(c)
         y = self.transform_r(r)
@@ -173,28 +202,14 @@ class DiscreteTAMPViewer(object):
             self.canvas.create_rectangle(x - self.side / 2., y - self.side / 2.,
                                          x + self.side / 2., y + self.side / 2.,
                                          fill=color, outline='black', width=2),
-            self.canvas.create_text(x, y, text=name),
+            self.canvas.create_text(x, y, text=name, font=('Arial', 8, 'bold')),
         ]
-
-    # def delete(self, (x, y)):
-    #  if (x, y) in self.cells:
-    #    self.canvas.delete(self.cells[(x, y)])
 
     def clear(self):
         self.canvas.delete('all')
 
-    def save(self, filename):
-        # self.canvas.postscript(file='%s.ps'%filename, colormode='color')
-        from PIL import ImageGrab
-        ImageGrab.grab((0, 0, self.width, self.height)).save(filename + '.jpg')
-
-
 
 def draw_state(viewer, state, colors):
-    # print("STATE CONF:", state.conf)
-    # print("HOLDING:", state.holding)
-    # print("OBJECT POSES:", state.object_poses)
-
     viewer.clear()
     viewer.draw_environment()
 
@@ -222,7 +237,7 @@ def draw_state(viewer, state, colors):
 
 def apply_action(state, action):
     conf, holding, object_poses = state
-    object_poses = dict(object_poses)  # avoid mutation
+    object_poses = dict(object_poses)
 
     name, args = action
 
@@ -249,25 +264,24 @@ def apply_action(state, action):
 def apply_plan(tamp_problem, plan):
     global POSE_TO_GRID_MAP
 
-    # 1. Dynamically layout table and shelf poses sequentially
+    # Dynamically layout table and shelf poses sequentially
     table_poses = sorted([p for p in tamp_problem.poses if 'table' in p])
     shelf_poses = sorted([p for p in tamp_problem.poses if 'shelf' in p])
 
     POSE_TO_GRID_MAP = {}
     for idx, p in enumerate(table_poses):
-        POSE_TO_GRID_MAP[p] = (0, idx)  # Row 0, sequential columns
+        POSE_TO_GRID_MAP[p] = (0, idx)
     for idx, p in enumerate(shelf_poses):
-        POSE_TO_GRID_MAP[p] = (1, idx)  # Row 1, sequential columns
+        POSE_TO_GRID_MAP[p] = (1, idx)
 
     colors = dict(zip(tamp_problem.objects, COLORS))
 
-    # Determine columns based on the maximum width needed
     max_cols = max(len(table_poses), len(shelf_poses), 1)
 
     viewer = DiscreteTAMPViewer(
         rows=2,
         cols=max_cols,
-        title='Discrete TAMP'
+        title='Discrete TAMP Simulation'
     )
 
     state = tamp_problem.initial
@@ -280,4 +294,3 @@ def apply_plan(tamp_problem, plan):
         draw_state(viewer, state, colors)
 
     user_input('Finished.')
-

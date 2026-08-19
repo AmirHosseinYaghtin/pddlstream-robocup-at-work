@@ -118,13 +118,17 @@ def compute_obstacle_boxes(furniture):
     return [get_object_box(obj_type, pose) for obj_type, pose in furniture]
 
 
-def compute_default_bounds(regions, margin=1.0):
+def compute_default_bounds(regions, furniture=None, margin=1.0):
     """Fallback world bounds for RRT random sampling, derived from the
-    union of all placement regions plus a margin."""
-    lowers = np.array([r.lower for r in regions.values()])
-    uppers = np.array([r.upper for r in regions.values()])
-    lower = lowers.min(axis=0) - margin
-    upper = uppers.max(axis=0) + margin
+    union of all placement regions and furniture plus a margin."""
+    lowers = [np.array(r.lower) for r in regions.values()]
+    uppers = [np.array(r.upper) for r in regions.values()]
+    for obj_type, pose in (furniture or []):
+        w, h = get_object_size(obj_type)
+        lowers.append(np.array(pose) - np.array([w, h]) / 2.)
+        uppers.append(np.array(pose) + np.array([w, h]) / 2.)
+    lower = np.min(lowers, axis=0) - margin
+    upper = np.max(uppers, axis=0) + margin
     return tuple(lower), tuple(upper)
 
 
@@ -445,7 +449,6 @@ def get_extra_base_cost_fn():
         d = np.hypot(bq2.x - bq1.x, bq2.y - bq1.y)
         return UNNECESSARY_BASE_PENALTY if d < UNNECESSARY_BASE_DIST_THRESHOLD else 0.
     return fn
-
 
 
 

@@ -39,11 +39,13 @@ from .primitives import (
 from .problems.pick_place import get_pick_and_place_problem
 from .problems.narrow_corridor import get_corridor_problem
 from .problems.multi_object import get_multi_object_problem
+from .problems.at_work import get_at_work_problem
 
 PROBLEMS = [
     get_pick_and_place_problem,
     get_corridor_problem,
     get_multi_object_problem,
+    get_at_work_problem,
 ]
 
 ROBOT = 'robot0'  # single-robot domain for now; matches problems/pick_place.py
@@ -100,7 +102,7 @@ def pddlstream_from_tamp(tamp_problem, collisions=True, default_world_bound_marg
 
     regions = tamp_problem.regions
     static_obstacles = compute_obstacle_boxes(tamp_problem.furniture)
-    world_bounds = compute_default_bounds(regions, default_world_bound_margin)
+    world_bounds = compute_default_bounds(regions, tamp_problem.furniture, default_world_bound_margin)
 
     stream_map = {
         's-grasp': from_gen_fn(get_grasp_gen()),
@@ -178,6 +180,43 @@ TIGHT_SKELETON = [
     ('place', ['robot0', 'cube1', '?p_dest1', '?g1', '?q6', '?aq_home', '?aq_place1', WILD]),
 ]
 
+TIGHT_SKELETON_work_single = [
+    ('move_base', ['robot0', '?q0', WILD, '?q1']),
+    ('pick_and_stow', ['robot0', 'bearing1', '?p1', '?g1', '?q1', '?aq_home', '?aq_grasp1', WILD, 'slot1']),
+    ('move_base', ['robot0', '?q1', WILD, '?q2']),
+    ('unstow_and_place', ['robot0', 'bearing1', '?p_dest1', '?g1', '?q2', '?aq_home', '?aq_place1', WILD, 'slot1']),
+]
+
+TIGHT_SKELETON_work = [
+    # --- Trip 1: ws1 -> pick 2 small parts + 1 precision part ---
+    ('move_base', ['robot0', '?q0', WILD, '?q1']),
+    ('pick_and_stow', ['robot0', 'f20_20_1', '?p1', '?g1', '?q1', '?aq_home', '?aq_g1', WILD, 'slot0']),
+    ('move_base', ['robot0', '?q1', WILD, '?q2']),
+    ('pick_and_stow', ['robot0', 'f20_20_2', '?p2', '?g2', '?q2', '?aq_home', '?aq_g2', WILD, 'slot1']),
+    ('move_base', ['robot0', '?q2', WILD, '?q3']),
+    ('pick_and_stow', ['robot0', 'bearing1', '?p3', '?g3', '?q3', '?aq_home', '?aq_g3', WILD, 'slot2']),
+
+    # --- deliver trip 1 ---
+    ('move_base', ['robot0', '?q3', WILD, '?q4']),
+    ('unstow_and_place', ['robot0', 'f20_20_1', '?pd1', '?g1', '?q4', '?aq_home', '?aq_p1', WILD, 'slot0']),
+    ('move_base', ['robot0', '?q4', WILD, '?q5']),
+    ('unstow_and_place', ['robot0', 'f20_20_2', '?pd2', '?g2', '?q5', '?aq_home', '?aq_p2', WILD, 'slot1']),
+    ('move_base', ['robot0', '?q5', WILD, '?q6']),
+    ('unstow_and_place', ['robot0', 'bearing1', '?pd3', '?g3', '?q6', '?aq_home', '?aq_p3', WILD, 'slot2']),
+
+    # --- Trip 2: ws2 -> pick 2 large parts ---
+    ('move_base', ['robot0', '?q6', WILD, '?q7']),
+    ('pick_and_stow', ['robot0', 's40_40_1', '?p4', '?g4', '?q7', '?aq_home', '?aq_g4', WILD, 'slot0']),
+    ('move_base', ['robot0', '?q7', WILD, '?q8']),
+    ('pick_and_stow', ['robot0', 's40_40_2', '?p5', '?g5', '?q8', '?aq_home', '?aq_g5', WILD, 'slot1']),
+
+    # --- deliver trip 2 ---
+    ('move_base', ['robot0', '?q8', WILD, '?q9']),
+    ('unstow_and_place', ['robot0', 's40_40_1', '?pd4', '?g4', '?q9', '?aq_home', '?aq_p4', WILD, 'slot0']),
+    ('move_base', ['robot0', '?q9', WILD, '?q10']),
+    ('unstow_and_place', ['robot0', 's40_40_2', '?pd5', '?g5', '?q10', '?aq_home', '?aq_p5', WILD, 'slot1']),
+]
+
 def main():
     parser = create_parser()
     tamp_problem, args = initialize(parser)
@@ -199,7 +238,7 @@ def main():
         'ExtraBaseCost': FunctionInfo(eager=False, defer_fn=defer_fn),
     }
 
-    skeletons = [TIGHT_SKELETON] if args.skeleton else None
+    skeletons = [TIGHT_SKELETON_work] if args.skeleton else None
     constraints = PlanConstraints(skeletons=skeletons,
                                   # skeletons=[],
                                   # skeletons=[skeleton, []],
@@ -215,7 +254,7 @@ def main():
         constraints=constraints,
         # planner='max-astar',
         unit_costs=args.unit,
-        max_time=150,
+        max_time=300,
         success_cost=INF,
         debug=False,
         verbose=False,

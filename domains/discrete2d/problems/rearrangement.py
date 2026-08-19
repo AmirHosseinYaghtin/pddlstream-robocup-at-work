@@ -10,6 +10,7 @@ def get_rearrangement_problem():
     table1_slot2 = make_pose('table1', 2)
     shelf1_slot1 = make_pose('shelf1', 1)
     shelf1_slot2 = make_pose('shelf1', 2)
+    shelf2_slot1 = make_pose('shelf2', 1)
 
     initial_object_poses = {
         'obj0': table1_slot1,
@@ -32,6 +33,7 @@ def get_rearrangement_problem():
         table1_slot2,
         shelf1_slot1,
         shelf1_slot2,
+        shelf2_slot1,
     ]
 
     return DiscreteTAMPProblem(initial, poses, goal_poses, objects)

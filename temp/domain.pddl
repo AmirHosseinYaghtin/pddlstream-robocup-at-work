@@ -130,21 +130,12 @@
   ;; out from its home/rest config aq1 to the grasp config aq2
   ;; and (abstracted) retracts back to aq1 carrying the object
   ;; ============================================================
-  ;; ============================================================
-  ;; stow / unstow : move a held object on/off the tray
-  ;; Purely a bookkeeping transfer (arm already holds the object
-  ;; from a pick; the tray sits within reach), so no motion stream
-  ;; is required -- these are cheap, instantaneous actions that
-  ;; let the robot free its gripper to pick up to 2 more objects
-  ;; before it must place any of them.
-  ;; ============================================================
 
-  (:action pick_and_stow
-    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at ?s)
+  (:action pick
+    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at)
     :precondition (and
         (Robot ?r) (Object ?o)
-        (Pose ?o ?p) (Grasp ?o ?g) (TraySlot ?s)
-        (TraySlotFree ?r ?s)
+        (Pose ?o ?p) (Grasp ?o ?g)
         (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
         (Dock ?o ?p ?bq)
         (IK ?o ?p ?g ?bq ?aq2)
@@ -159,43 +150,32 @@
                  (ArmCFree ?bq ?at ?o2 ?p2)))
     )
     :effect (and
-        (OnTray ?r ?o ?s)
+        (AtGrasp ?r ?o ?g)
         (not (AtPose ?o ?p))
+        (not (HandEmpty ?r))
+        (not (CanMoveArm ?r))
         (CanMoveBase ?r)
-        (HandEmpty ?r)
-        (CanMoveArm ?r)
-        (not (TraySlotFree ?r ?s))
         (increase (total-cost) (ArmDist ?aq1 ?aq2))
         (increase (total-cost) (Cost))
-        (increase (total-cost) (StowCost))
     )
   )
-
 
   ;; ============================================================
   ;; place : place the currently-gripped object at a target pose
   ;; ============================================================
-  ;; ============================================================
-  ;; stow / unstow : move a held object on/off the tray
-  ;; Purely a bookkeeping transfer (arm already holds the object
-  ;; from a pick; the tray sits within reach), so no motion stream
-  ;; is required -- these are cheap, instantaneous actions that
-  ;; let the robot free its gripper to pick up to 2 more objects
-  ;; before it must place any of them.
-  ;; ============================================================
-  (:action unstow_and_place
-    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at ?s)
+
+  (:action place
+    :parameters (?r ?o ?p ?g ?bq ?aq1 ?aq2 ?at)
     :precondition (and
         (Robot ?r) (Object ?o)
-        (Pose ?o ?p) (Grasp ?o ?g) (TraySlot ?s)
+        (Pose ?o ?p) (Grasp ?o ?g)
         (BaseConf ?bq) (ArmConf ?aq1) (ArmConf ?aq2) (ArmTraj ?at)
-        (OnTray ?r ?o ?s)
-        (HandEmpty ?r)
         (Dock ?o ?p ?bq)
         (IK ?o ?p ?g ?bq ?aq2)
         (ArmMotionHolding ?bq ?aq1 ?at ?aq2 ?o ?g)
         (AtBaseConf ?r ?bq)
         (AtArmConf ?r ?aq1)
+        (AtGrasp ?r ?o ?g)
         (CanMoveArm ?r)
         (forall (?o2 ?p2)
           (imply (and (Object ?o2) (Pose ?o2 ?p2) (AtPose ?o2 ?p2) (not (= ?o2 ?o)))
@@ -204,18 +184,56 @@
     :effect (and
         (AtPose ?o ?p)
         (HandEmpty ?r)
-        (TraySlotFree ?r ?s)
         (not (AtGrasp ?r ?o ?g))
         (not (CanMoveArm ?r))
         (CanMoveBase ?r)
-        (not (OnTray ?r ?o ?s))
         (increase (total-cost) (ArmDist ?aq1 ?aq2))
         (increase (total-cost) (Cost))
+    )
+  )
+
+  ;; ============================================================
+  ;; stow / unstow : move a held object on/off the tray
+  ;; Purely a bookkeeping transfer (arm already holds the object
+  ;; from a pick; the tray sits within reach), so no motion stream
+  ;; is required -- these are cheap, instantaneous actions that
+  ;; let the robot free its gripper to pick up to 2 more objects
+  ;; before it must place any of them.
+  ;; ============================================================
+
+  (:action stow
+    :parameters (?r ?o ?g ?s)
+    :precondition (and
+        (Robot ?r) (Object ?o) (Grasp ?o ?g) (TraySlot ?s)
+        (AtGrasp ?r ?o ?g)
+        (TraySlotFree ?r ?s)
+    )
+    :effect (and
+        (OnTray ?r ?o ?s)
+        (HandEmpty ?r)
+        (CanMoveArm ?r)
+        (not (TraySlotFree ?r ?s))
+        (not (AtGrasp ?r ?o ?g))
         (increase (total-cost) (StowCost))
     )
   )
 
-
+  (:action unstow
+    :parameters (?r ?o ?g ?s)
+    :precondition (and
+        (Robot ?r) (Object ?o) (Grasp ?o ?g) (TraySlot ?s)
+        (OnTray ?r ?o ?s)
+        (HandEmpty ?r)
+    )
+    :effect (and
+        (AtGrasp ?r ?o ?g)
+        (TraySlotFree ?r ?s)
+        (CanMoveArm ?r)
+        (not (OnTray ?r ?o ?s))
+        (not (HandEmpty ?r))
+        (increase (total-cost) (StowCost))
+    )
+  )
 
   ;; ============================================================
   ;; Derived predicates
