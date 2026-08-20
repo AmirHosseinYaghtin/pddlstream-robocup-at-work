@@ -88,13 +88,19 @@
   )
 
   (:functions
-    (Cost)                    ;; fixed per-action cost for pick/place/move.
-    (StowCost)                ;; smaller cost for stow/unstow actions
-    (Dist ?bq1 ?bq2)          ;; base path length between two base confs
-    (ArmDist ?aq1 ?aq2)       ;; arm joint-space distance between two confs
-    (ExtraBaseCost ?bq1 ?bq2) ;; optional penalty for "unnecessary" base
-                              ;; travel, supplied by the same stream that
-                              ;; certifies BaseMotion
+    ;; At most ONE of these may appear in any single action's :effect.
+    ;; Fast Downward's translator keeps only the LAST
+    ;; (increase (total-cost) ...) effect of an action and silently
+    ;; drops the earlier ones, so each function below already returns
+    ;; that action's COMPLETE cost (summed in primitives.py).
+    (MoveCost ?bq1 ?bq2)      ;; whole cost of one move_base: flat charge
+                              ;; + base travel + unnecessary-hop penalty
+    (ManipCost ?aq1 ?aq2)     ;; whole cost of one pick_and_stow /
+                              ;; unstow_and_place: flat charge + the tray
+                              ;; transfer + arm joint-space travel
+    (StowCost)                ;; no action here uses it (the stow is folded
+                              ;; into ManipCost), but the shared :init in
+                              ;; run.py assigns it, so it stays declared
     (total-cost)
   )
 
@@ -119,8 +125,7 @@
         (not (AtBaseConf ?r ?bq1))
         (not (CanMoveBase ?r))
         (CanMoveArm ?r)
-        (increase (total-cost) (Dist ?bq1 ?bq2))
-        (increase (total-cost) (ExtraBaseCost ?bq1 ?bq2))
+        (increase (total-cost) (MoveCost ?bq1 ?bq2))
     )
   )
 
@@ -165,9 +170,7 @@
         (HandEmpty ?r)
         (CanMoveArm ?r)
         (not (TraySlotFree ?r ?s))
-        (increase (total-cost) (ArmDist ?aq1 ?aq2))
-        (increase (total-cost) (Cost))
-        (increase (total-cost) (StowCost))
+        (increase (total-cost) (ManipCost ?aq1 ?aq2))
     )
   )
 
@@ -209,9 +212,7 @@
         (not (CanMoveArm ?r))
         (CanMoveBase ?r)
         (not (OnTray ?r ?o ?s))
-        (increase (total-cost) (ArmDist ?aq1 ?aq2))
-        (increase (total-cost) (Cost))
-        (increase (total-cost) (StowCost))
+        (increase (total-cost) (ManipCost ?aq1 ?aq2))
     )
   )
 

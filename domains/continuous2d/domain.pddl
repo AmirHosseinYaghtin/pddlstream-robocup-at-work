@@ -88,13 +88,16 @@
   )
 
   (:functions
-    (Cost)                    ;; fixed per-action cost for pick/place/move.
-    (StowCost)                ;; smaller cost for stow/unstow actions
-    (Dist ?bq1 ?bq2)          ;; base path length between two base confs
-    (ArmDist ?aq1 ?aq2)       ;; arm joint-space distance between two confs
-    (ExtraBaseCost ?bq1 ?bq2) ;; optional penalty for "unnecessary" base
-                              ;; travel, supplied by the same stream that
-                              ;; certifies BaseMotion
+    ;; At most ONE of these may appear in any single action's :effect.
+    ;; Fast Downward's translator keeps only the LAST
+    ;; (increase (total-cost) ...) effect of an action and silently
+    ;; drops the earlier ones, so each function below already returns
+    ;; that action's COMPLETE cost (summed in primitives.py).
+    (MoveCost ?bq1 ?bq2)      ;; whole cost of one move_base: flat charge
+                              ;; + base travel + unnecessary-hop penalty
+    (ManipCost ?aq1 ?aq2)     ;; whole cost of one pick/place: flat charge
+                              ;; + arm joint-space travel
+    (StowCost)                ;; whole cost of one stow/unstow (constant)
     (total-cost)
   )
 
@@ -119,8 +122,7 @@
         (not (AtBaseConf ?r ?bq1))
         (not (CanMoveBase ?r))
         (CanMoveArm ?r)
-        (increase (total-cost) (Dist ?bq1 ?bq2))
-        (increase (total-cost) (ExtraBaseCost ?bq1 ?bq2))
+        (increase (total-cost) (MoveCost ?bq1 ?bq2))
     )
   )
 
@@ -155,8 +157,7 @@
         (not (HandEmpty ?r))
         (not (CanMoveArm ?r))
         (CanMoveBase ?r)
-        (increase (total-cost) (ArmDist ?aq1 ?aq2))
-        (increase (total-cost) (Cost))
+        (increase (total-cost) (ManipCost ?aq1 ?aq2))
     )
   )
 
@@ -187,8 +188,7 @@
         (not (AtGrasp ?r ?o ?g))
         (not (CanMoveArm ?r))
         (CanMoveBase ?r)
-        (increase (total-cost) (ArmDist ?aq1 ?aq2))
-        (increase (total-cost) (Cost))
+        (increase (total-cost) (ManipCost ?aq1 ?aq2))
     )
   )
 

@@ -29,10 +29,10 @@ from .primitives import (
     get_arm_motion_holding_fn,
     get_base_cfree_test,
     get_arm_cfree_test,
-    get_base_distance_fn,
-    get_arm_distance_fn,
-    get_extra_base_cost_fn,
-    PICK_PLACE_COST,
+    get_move_base_cost_fn,
+    get_manip_cost_fn,
+    get_move_base_cost_opt_fn,
+    get_manip_cost_opt_fn,
     STOW_UNSTOW_COST,
 )
 
@@ -58,7 +58,9 @@ def create_problem(tamp_problem):
 
     init = [
         Equal((TOTAL_COST,), 0),
-        Equal(('Cost',), PICK_PLACE_COST),  # flat per-action cost; see stream.pddl note
+        # Flat charges for pick/place and for the arm travel now live inside
+        # the MoveCost/ManipCost functions (see primitives.py) -- only the
+        # constant stow/unstow cost is still supplied here.
         Equal(('StowCost',), STOW_UNSTOW_COST),
         ('Robot', ROBOT),
         ('BaseConf', initial.base_conf),
@@ -119,9 +121,12 @@ def pddlstream_from_tamp(tamp_problem, collisions=True, default_world_bound_marg
         # :function entries are raw callables, not wrapped -- pddlstream
         # calls them directly to score a cost, same as official
         # continuous_tamp/run.py's 'dist': distance_fn.
-        'Dist': get_base_distance_fn(),
-        'ArmDist': get_arm_distance_fn(),
-        'ExtraBaseCost': get_extra_base_cost_fn(),
+        # Each returns its action's COMPLETE cost, because an action may
+        # carry only one (increase (total-cost) ...) effect -- FD drops all
+        # but the last. ManipCost also absorbs the stow/unstow charge when
+        # the merged domain bundles it into each manipulation action.
+        'MoveCost': get_move_base_cost_fn(),
+        'ManipCost': get_manip_cost_fn(include_stow=merge_pick_and_stow),
     }
 
     init, goal = create_problem(tamp_problem)
@@ -233,9 +238,16 @@ def main():
         't-base-cfree': StreamInfo(eager=False, verbose=False),
         't-arm-cfree': StreamInfo(eager=False, verbose=False),
         't-region': StreamInfo(eager=True, p_success=0),
-        'Dist': FunctionInfo(eager=False, defer_fn=defer_fn),
-        'ArmDist': FunctionInfo(eager=False, defer_fn=defer_fn),
-        'ExtraBaseCost': FunctionInfo(eager=False, defer_fn=defer_fn),
+        # opt_fn = the action's cost with both distance terms dropped, i.e.
+        # a lower bound. Mandatory once the costs are real: without it the
+        # focused/adaptive search prices every action over an unsampled
+        # configuration at 0 and prefers long plans built from unsampled
+        # objects. See the comment above get_move_base_cost_opt_fn().
+        'MoveCost': FunctionInfo(eager=False, defer_fn=defer_fn,
+                                 opt_fn=get_move_base_cost_opt_fn()),
+        'ManipCost': FunctionInfo(eager=False, defer_fn=defer_fn,
+                                  opt_fn=get_manip_cost_opt_fn(
+                                      include_stow=args.mergeactions)),
     }
 
     skeletons = [TIGHT_SKELETON_work] if args.skeleton else None
@@ -252,6 +264,13 @@ def main():
         pddlstream_problem,
         algorithm=args.algorithm,
         constraints=constraints,
+        # stream_info is what tells the focused/adaptive algorithms to defer
+        # sampling and how to price an action whose configurations are still
+        # unsampled. It used to be built and then dropped on the floor here;
+        # with real (non-zero) action costs that omission made multi_object
+        # unsolvable within 300s, because every not-yet-sampled action looked
+        # free and the planner drowned in long bogus skeletons.
+        stream_info=stream_info,
         # planner='max-astar',
         unit_costs=args.unit,
         max_time=300,

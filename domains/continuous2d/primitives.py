@@ -1,5 +1,4 @@
 from collections import namedtuple
-import itertools
 import numpy as np
 
 # =====================================================================
@@ -13,7 +12,7 @@ import numpy as np
 BaseConf = namedtuple('BaseConf', ['x', 'y', 'theta'])
 ArmConf = namedtuple('ArmConf', ['joints'])  # pure joint angles, frame-agnostic
 
-Grasp = namedtuple('Grasp', ['dx', 'dy', 'dtheta'])
+Grasp = namedtuple('Grasp', ['obj', 'dx', 'dy', 'dtheta'])  # obj: see get_grasp_gen
 
 BaseTraj = namedtuple('BaseTraj', ['waypoints'])                       # list[BaseConf]
 ArmTraj = namedtuple('ArmTraj', ['waypoints', 'held_object', 'held_grasp'])  # list[ArmConf]
@@ -147,8 +146,22 @@ def region_as_furniture(region):
 
 def get_grasp_gen():
     def gen(obj):
-        for angle in itertools.cycle(GRASP_ANGLES):
-            yield (Grasp(0., 0., angle),)
+        # ?o is carried in the Grasp value even though the geometry doesn't
+        # depend on it. pddlstream interns objects by value, so an
+        # object-independent grasp would make s-grasp(cube1) and
+        # s-grasp(cube3) yield the *same* output object. A skeleton that
+        # re-achieves both then has to substitute two different new grasps
+        # for that one shared object, which pddlstream cannot represent --
+        # it aborts on the conflicting-bindings check in
+        # algorithms/disabled.py:update_bindings. Keying on ?o keeps every
+        # instance's outputs distinct.
+        #
+        # Finite on purpose: GRASP_ANGLES is the complete set of grasps, so
+        # the generator must end. Cycling it forever told pddlstream there
+        # were infinitely many grasps left, so an instance never became
+        # enumerated and skeletons kept re-sampling the same four values.
+        for angle in GRASP_ANGLES:
+            yield (Grasp(obj, 0., 0., angle),)
     return gen
 
 
@@ -427,28 +440,87 @@ def get_arm_cfree_test(object_types):
 
 
 # =====================================================================
-# Cost functions: Dist, ArmDist, ExtraBaseCost
+# Cost functions: MoveCost, ManipCost
+#
+# ONE cost function per action -- do not split an action's cost across
+# several (increase (total-cost) ...) effects. Fast Downward's
+# translator keeps only the LAST such effect of an action and silently
+# drops the earlier ones (ConjunctiveEffect.extract_cost in
+# downward/.../translate/pddl/effects.py), and PDDLStream only recovers
+# a cost when the effect is a single primitive expression
+# (algorithms/scheduling/recover_functions.py). PDDL gives no way to
+# add two functions inside one increase either -- FD parses (+ f g) as
+# a *function literally named "+"*. So the sums that used to live in
+# the domain file (Dist + ExtraBaseCost, ArmDist + Cost [+ StowCost])
+# are performed HERE and exposed as one function per action.
 # =====================================================================
 
-def get_base_distance_fn():
+def base_distance(bq1, bq2):
+    return np.hypot(bq2.x - bq1.x, bq2.y - bq1.y)
+
+
+def arm_distance(aq1, aq2):
+    j1, j2 = np.array(aq1.joints), np.array(aq2.joints)
+    return np.linalg.norm(j2 - j1, ord=1)
+
+
+def get_move_base_cost_fn():
+    """Complete cost of one move_base: flat per-move charge + base
+    travel + the optional penalty for an "unnecessary" short hop
+    (previously the separate Dist and ExtraBaseCost effects)."""
     def fn(bq1, bq2):
-        d = np.hypot(bq2.x - bq1.x, bq2.y - bq1.y)
-        return MOVE_BASE_COST + COST_PER_BASE_DIST * d
+        d = base_distance(bq1, bq2)
+        extra = UNNECESSARY_BASE_PENALTY if d < UNNECESSARY_BASE_DIST_THRESHOLD else 0.
+        return MOVE_BASE_COST + COST_PER_BASE_DIST * d + extra
     return fn
 
 
-def get_arm_distance_fn():
+def get_manip_cost_fn(include_stow=False):
+    """Complete cost of one manipulation action: flat per-action charge
+    + the arm's joint-space travel (previously the separate Cost and
+    ArmDist effects).
+
+    include_stow additionally charges the tray transfer, for
+    domain_merged.pddl's pick_and_stow / unstow_and_place which fold a
+    stow/unstow into the same action (previously their third, and only
+    surviving, StowCost effect)."""
+    stow_cost = STOW_UNSTOW_COST if include_stow else 0.
+
     def fn(aq1, aq2):
-        j1, j2 = np.array(aq1.joints), np.array(aq2.joints)
-        return COST_PER_ARM_DIST * np.linalg.norm(j2 - j1, ord=1)
+        return PICK_PLACE_COST + stow_cost + COST_PER_ARM_DIST * arm_distance(aq1, aq2)
     return fn
 
 
-def get_extra_base_cost_fn():
-    def fn(bq1, bq2):
-        d = np.hypot(bq2.x - bq1.x, bq2.y - bq1.y)
-        return UNNECESSARY_BASE_PENALTY if d < UNNECESSARY_BASE_DIST_THRESHOLD else 0.
-    return fn
+# ---------------------------------------------------------------------
+# Optimistic (lower-bound) versions of the two cost functions.
+#
+# The focused/adaptive algorithms plan over configurations that have not
+# been sampled yet, so they cannot call the real cost function -- they
+# ask the function's opt_fn instead. Without one, PDDLStream falls back
+# to float() == 0.0 (Function.__init__ in
+# pddlstream/language/function.py), i.e. every action over an unsampled
+# configuration looks FREE. The planner then happily builds long plans
+# that shuttle through unsampled base configurations instead of short
+# plans made of already-sampled, honestly-priced ones.
+#
+# Both distance terms are non-negative, so dropping them leaves a valid
+# lower bound (which is what an opt_fn must be). Pass these through
+# solve(stream_info=...) -- same pattern as PDDLStream's own
+# examples/continuous_tamp/run.py.
+# ---------------------------------------------------------------------
+
+def get_move_base_cost_opt_fn():
+    def opt_fn(bq1, bq2):
+        return MOVE_BASE_COST
+    return opt_fn
+
+
+def get_manip_cost_opt_fn(include_stow=False):
+    stow_cost = STOW_UNSTOW_COST if include_stow else 0.
+
+    def opt_fn(aq1, aq2):
+        return PICK_PLACE_COST + stow_cost
+    return opt_fn
 
 
 
@@ -477,9 +549,10 @@ def get_stream_map(regions, object_types, static_obstacles=None, world_bounds=No
     }
 
 
-def get_function_map():
+def get_function_map(merge_pick_and_stow=False):
+    """merge_pick_and_stow must match the domain file in use, since the
+    merged actions bundle a stow/unstow into each manipulation."""
     return {
-        'Dist': get_base_distance_fn(),
-        'ArmDist': get_arm_distance_fn(),
-        'ExtraBaseCost': get_extra_base_cost_fn(),
+        'MoveCost': get_move_base_cost_fn(),
+        'ManipCost': get_manip_cost_fn(include_stow=merge_pick_and_stow),
     }

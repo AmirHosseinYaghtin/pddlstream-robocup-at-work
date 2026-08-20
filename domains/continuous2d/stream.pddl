@@ -118,21 +118,24 @@
 
   ;; ============================================================
   ;; Cost functions
+  ;;
+  ;; One function per action, each returning that action's COMPLETE
+  ;; cost. An action must never carry more than one
+  ;; (increase (total-cost) ...) effect: Fast Downward keeps only the
+  ;; last one and silently drops the rest, so a split cost loses every
+  ;; term but the final one. See the comment block above the cost
+  ;; functions in primitives.py.
   ;; ============================================================
-  (:function (Dist ?bq1 ?bq2)
+  (:function (MoveCost ?bq1 ?bq2)
     (and (BaseConf ?bq1) (BaseConf ?bq2))
   )
 
-  (:function (ArmDist ?aq1 ?aq2)
+  (:function (ManipCost ?aq1 ?aq2)
     (and (ArmConf ?aq1) (ArmConf ?aq2))
   )
 
-  (:function (ExtraBaseCost ?bq1 ?bq2)
-    (and (BaseConf ?bq1) (BaseConf ?bq2))
-  )
-
-  ;; Note: (Cost) is NOT declared here. It's used in domain.pddl as
-  ;; a flat per-action constant (pick/place/stow/unstow), not as
-  ;; something a stream computes from inputs. Set it once in
-  ;; problem.pddl's :init, e.g. (= (Cost) 1) -- no stream needed.
+  ;; Note: (StowCost) is NOT declared here. It's used in domain.pddl as
+  ;; a flat per-action constant for stow/unstow, not as something a
+  ;; stream computes from inputs. Set it once in the problem's :init,
+  ;; e.g. (= (StowCost) 0.5) -- no stream needed.
 )
