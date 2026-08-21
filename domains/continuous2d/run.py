@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 
-from pddlstream.algorithms.meta import solve, create_parser
+from pddlstream.algorithms.meta import solve, create_parser, DEFAULT_ALGORITHM
 from pddlstream.language.constants import And, Equal, TOTAL_COST, PDDLProblem, print_solution
 from pddlstream.language.generator import from_gen_fn, from_fn, from_test
 from pddlstream.language.stream import StreamInfo
@@ -47,6 +47,19 @@ PROBLEMS = [
     get_multi_object_problem,
     get_at_work_problem,
 ]
+
+# Kept in the order above: least to most complex. The evaluation harness relies
+# on it, and -p accepts any of these function names.
+DEFAULT_PROBLEM = 'get_pick_and_place_problem'
+
+
+def get_problem_fn(name):
+    problem_from_name = {fn.__name__: fn for fn in PROBLEMS}
+    if name not in problem_from_name:
+        raise ValueError('Unknown problem: {}. Options: {}'.format(
+            name, list(problem_from_name)))
+    return problem_from_name[name]
+
 
 ROBOT = 'robot0'  # single-robot domain for now; matches problems/pick_place.py
 
@@ -146,12 +159,8 @@ def initialize(parser):
     args = parser.parse_args()
     print('Arguments:', args)
 
-    problem_from_name = {fn.__name__: fn for fn in PROBLEMS}
-    if args.problem not in problem_from_name:
-        raise ValueError('Unknown problem: {}. Options: {}'.format(
-            args.problem, list(problem_from_name)))
     print('Problem:', args.problem)
-    problem_fn = problem_from_name[args.problem]
+    problem_fn = get_problem_fn(args.problem)
     tamp_problem = problem_fn()
     print(tamp_problem)
     return tamp_problem, args
@@ -222,12 +231,15 @@ TIGHT_SKELETON_work = [
     ('unstow_and_place', ['robot0', 's40_40_2', '?pd5', '?g5', '?q10', '?aq_home', '?aq_p5', WILD, 'slot1']),
 ]
 
-def main():
-    parser = create_parser()
-    tamp_problem, args = initialize(parser)
+def create_stream_info(merge_pick_and_stow=False):
+    """StreamInfo/FunctionInfo overrides handed to solve(stream_info=...).
 
+    Kept as its own function so the CLI and the evaluation harness cannot drift
+    apart: this used to live inline in main() and was (accidentally) not passed
+    to solve() at all, which made multi_object unsolvable within 300s.
+    """
     defer_fn = defer_shared
-    stream_info = {
+    return {
         's-region': StreamInfo(defer_fn=defer_fn),
         's-grasp': StreamInfo(defer_fn=defer_fn),
         's-dock': StreamInfo(defer_fn=defer_fn),
@@ -247,22 +259,38 @@ def main():
                                  opt_fn=get_move_base_cost_opt_fn()),
         'ManipCost': FunctionInfo(eager=False, defer_fn=defer_fn,
                                   opt_fn=get_manip_cost_opt_fn(
-                                      include_stow=args.mergeactions)),
+                                      include_stow=merge_pick_and_stow)),
     }
 
-    skeletons = [TIGHT_SKELETON_work] if args.skeleton else None
+
+def solve_tamp(tamp_problem, algorithm=DEFAULT_ALGORITHM, collisions=True,
+               world_bound_margin=1.0, merge_pick_and_stow=False, skeleton=False,
+               unit_costs=False, max_time=300, success_cost=INF,
+               verbose=False, debug=False, dump=True, **kwargs):
+    """Build the PDDLStream problem and solve it. No viewer, no I/O prompts.
+
+    This is the whole of main() minus argument parsing and visualization, so the
+    CLI and the evaluation harness go through byte-identical planning code.
+    """
+    stream_info = create_stream_info(merge_pick_and_stow=merge_pick_and_stow)
+
+    skeletons = [TIGHT_SKELETON_work] if skeleton else None
     constraints = PlanConstraints(skeletons=skeletons,
                                   # skeletons=[],
                                   # skeletons=[skeleton, []],
                                   exact=True,
                                   max_cost=INF)
 
-    pddlstream_problem = pddlstream_from_tamp(tamp_problem, collisions=not args.cfree, default_world_bound_margin=args.worldmargin, merge_pick_and_stow=args.mergeactions)
-    dump_pddlstream(pddlstream_problem)
+    pddlstream_problem = pddlstream_from_tamp(
+        tamp_problem, collisions=collisions,
+        default_world_bound_margin=world_bound_margin,
+        merge_pick_and_stow=merge_pick_and_stow)
+    if dump:
+        dump_pddlstream(pddlstream_problem)
 
-    solution = solve(
+    return solve(
         pddlstream_problem,
-        algorithm=args.algorithm,
+        algorithm=algorithm,
         constraints=constraints,
         # stream_info is what tells the focused/adaptive algorithms to defer
         # sampling and how to price an action whose configurations are still
@@ -272,19 +300,33 @@ def main():
         # free and the planner drowned in long bogus skeletons.
         stream_info=stream_info,
         # planner='max-astar',
+        unit_costs=unit_costs,
+        max_time=max_time,
+        success_cost=success_cost,
+        debug=debug,
+        verbose=verbose,
+        **kwargs
+    )
+
+
+def main():
+    parser = create_parser()
+    tamp_problem, args = initialize(parser)
+
+    solution = solve_tamp(
+        tamp_problem,
+        algorithm=args.algorithm,
+        collisions=not args.cfree,
+        world_bound_margin=args.worldmargin,
+        merge_pick_and_stow=args.mergeactions,
+        skeleton=args.skeleton,
         unit_costs=args.unit,
-        max_time=300,
-        success_cost=INF,
-        debug=False,
-        verbose=False,
     )
 
     print_solution(solution)
     plan, cost, evaluations = solution
     if plan is None:
         return
-
-
 
     from .viewer import apply_plan
     apply_plan(tamp_problem, plan)

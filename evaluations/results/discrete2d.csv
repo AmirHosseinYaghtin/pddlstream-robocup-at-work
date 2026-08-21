@@ -1,0 +1,4 @@
+scenario,problem,trials,solved_trials,success_rate,timeout_rate,run_time,search_time,sample_time,evaluations,iterations,complexity,skeletons,cost,length,solutions,wall_time
+pick_place,get_pick_and_place_problem,5,5,1.0,0.0,0.02860856056213379,0.028559350967407228,4.892349243164062e-05,14.0,2.0,1.0,1.0,0.0,4.0,1.0,0.030379390716552733
+object_transport,get_object_transport_problem,5,5,1.0,0.0,0.026040315628051758,0.025988149642944335,5.1927566528320315e-05,18.0,2.0,1.0,1.0,0.0,4.0,1.0,0.027396726608276366
+rearrangement,get_rearrangement_problem,5,5,1.0,0.0,0.02901606559753418,0.028965091705322264,5.078315734863281e-05,23.0,2.0,1.0,1.0,0.0,12.0,1.0,0.03010716438293457
