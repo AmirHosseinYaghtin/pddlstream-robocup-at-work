@@ -389,7 +389,10 @@ def plot_heatmap(phase, trials, theme, out_path):
             # 2px surface gap: inset every cell instead of stroking it.
             ax.add_patch(plt.Rectangle((column + 0.03, row + 0.03), 0.94, 0.94,
                                        facecolor=face, edgecolor='none'))
-            ink = theme['on_ramp_dark'] if fraction < 0.55 else theme['on_ramp_light']
+            # on_ramp_light is the ink for the ramp's LOW end, on_ramp_dark for
+            # its HIGH end -- which swatch is physically lighter differs by
+            # theme, because DARK's ramp runs dark-to-light.
+            ink = theme['on_ramp_light'] if fraction < 0.55 else theme['on_ramp_dark']
             ax.text(column + 0.5, row + 0.5, _fmt(value, pattern), ha='center',
                     va='center', color=ink, fontsize=8.5)
 
@@ -405,14 +408,22 @@ def plot_heatmap(phase, trials, theme, out_path):
     for side in ('top', 'right', 'left', 'bottom'):
         ax.spines[side].set_visible(False)
 
-    ax.set_title('{} -- each row shaded against its own maximum (mean of {} trials)'.format(
-        phase['phase'], trials), color=theme['ink'], fontsize=11.5,
-        fontweight='bold', loc='left', pad=30)
+    # The heading goes on the figure, not the axes. The row labels are wide, so an
+    # axes title starts well to the right of the figure's left edge, and at three
+    # scenarios the figure is narrow enough that this title ran off the right edge
+    # of discrete2d's heatmap with nothing to show it had been cut.
+    fig.text(0.012, 1 - 0.16 / panel_h,
+             '{} -- each row shaded against its own maximum (mean of {} trials)'.format(
+                 phase['phase'], trials),
+             color=theme['ink'], fontsize=11.5, fontweight='bold', ha='left', va='top')
+    # The dark theme's ramp runs dark-to-light, so "darker = larger" is only true
+    # in the light theme; stating it unconditionally would invert the reading.
+    direction = 'Brighter' if theme is DARK else 'Darker'
     fig.text(0.012, 0.015,
-             'Darker = larger. Rows are shaded independently because the metrics '
-             'do not share a scale; cell text is the actual mean.',
+             '{} = larger. Rows are shaded independently because the metrics '
+             'do not share a scale; cell text is the actual mean.'.format(direction),
              color=theme['ink_secondary'], fontsize=8.5, ha='left')
-    fig.tight_layout(rect=(0, 0.045, 1, 1))
+    fig.tight_layout(rect=(0, 0.045, 1, 1 - 0.52 / panel_h))
     _save(fig, out_path, theme)
 
 

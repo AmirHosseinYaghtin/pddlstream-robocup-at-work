@@ -1,0 +1,192 @@
+{
+  "config": {
+    "algorithm": "adaptive",
+    "max_time": 300,
+    "merge_actions": true,
+    "phase": "continuous2d",
+    "planner_cost_slope": 1.0289124259145248,
+    "scenario": "multi_object",
+    "script_cost_slope": 5.059072906245201,
+    "separations": [
+      2.0,
+      4.0,
+      6.0,
+      8.0,
+      10.0,
+      12.0
+    ],
+    "shipped_separation": 8.0,
+    "trials": 10
+  },
+  "points": [
+    {
+      "gap": 4.362891520126176,
+      "gap_fraction": 0.0642145648804676,
+      "planner": {
+        "cost": 63.57950641167472,
+        "cost_std": 2.006376981852881,
+        "length": 12.0,
+        "run_time": 0.7942462205886841,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 4.89500418429464,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 67.9423979318009,
+        "cost_std": 2.140609461088082,
+        "length": 12.0,
+        "run_time": 0.07812714576721191,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 10.073610225940934,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 2.0,
+      "shipped": false
+    },
+    {
+      "gap": 10.448563866586213,
+      "gap_fraction": 0.1362846690291687,
+      "planner": {
+        "cost": 66.21863532035924,
+        "cost_std": 1.6668806343862241,
+        "length": 12.0,
+        "run_time": 0.8592682361602784,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 7.010139008563728,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 76.66719918694545,
+        "cost_std": 2.26678668947889,
+        "length": 12.0,
+        "run_time": 0.14581599235534667,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 19.054313863302774,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 4.0,
+      "shipped": false
+    },
+    {
+      "gap": 20.166299483939696,
+      "gap_fraction": 0.2322900821841344,
+      "planner": {
+        "cost": 66.64885549092504,
+        "cost_std": 1.5023918550577244,
+        "length": 12.0,
+        "run_time": 0.9743274688720703,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 8.753555532974266,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 86.81515497486474,
+        "cost_std": 2.339304125478864,
+        "length": 12.0,
+        "run_time": 0.1541213035583496,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 29.159840596873284,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 6.0,
+      "shipped": false
+    },
+    {
+      "gap": 28.058922726143308,
+      "gap_fraction": 0.28786198130477436,
+      "planner": {
+        "cost": 69.41460468780122,
+        "cost_std": 2.2554113634695314,
+        "length": 12.0,
+        "run_time": 0.959616231918335,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 11.306556270231933,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 97.47352741394452,
+        "cost_std": 1.3652555531281276,
+        "length": 12.0,
+        "run_time": 0.2569973707199097,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 38.77511753160215,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 8.0,
+      "shipped": true
+    },
+    {
+      "gap": 37.87374110999386,
+      "gap_fraction": 0.34930645608444744,
+      "planner": {
+        "cost": 70.55179884291671,
+        "cost_std": 2.5424443900767124,
+        "length": 12.0,
+        "run_time": 0.9817612409591675,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 12.93741653290483,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 108.42553995291057,
+        "cost_std": 2.2718545951300544,
+        "length": 12.0,
+        "run_time": 0.4678400278091431,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 49.08931333369101,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 10.0,
+      "shipped": false
+    },
+    {
+      "gap": 42.75150725027025,
+      "gap_fraction": 0.3635865890655833,
+      "planner": {
+        "cost": 74.83123242156839,
+        "cost_std": 1.8059773978280913,
+        "length": 12.0,
+        "run_time": 1.3467591762542725,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 15.810449405671552,
+        "tray_peak": 3.0,
+        "trials": 10
+      },
+      "script": {
+        "cost": 117.58273967183864,
+        "cost_std": 1.975338214192952,
+        "length": 12.0,
+        "run_time": 0.4236640214920044,
+        "solved_trials": 10,
+        "success_rate": 1.0,
+        "travel": 59.00983148381251,
+        "tray_peak": 1.0,
+        "trials": 10
+      },
+      "separation": 12.0,
+      "shipped": false
+    }
+  ],
+  "sweep": "separation"
+}

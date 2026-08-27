@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Run every evaluation scenario N times and record the averaged metrics.
 
-    python -m evaluations.run                     # 5 trials, both phases
+    python -m evaluations.run                     # 20 trials, both phases
     python -m evaluations.run --trials 10
     python -m evaluations.run --phase continuous2d
     python -m evaluations.run --scenario at_work --trials 3
@@ -42,7 +42,7 @@ PRIMARY_METRICS = [
 
 SECONDARY_METRICS = ['length', 'solutions', 'wall_time']
 
-DEFAULT_TRIALS = 5
+DEFAULT_TRIALS = 20
 
 
 def _finite(value):

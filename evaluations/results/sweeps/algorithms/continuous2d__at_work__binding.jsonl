@@ -1,0 +1,2 @@
+{"solved": false, "timeout": false, "has_plan": false, "error": "AssertionError: Could not find instantiation for PNE: 'PNE movecost(v58, v59)'", "trial": 0}
+{"solved": false, "solutions": 0, "cost": null, "length": null, "evaluations": 164, "search_time": 77.44943308830261, "sample_time": 0.023653745651245117, "run_time": 77.47308707237244, "timeout": true, "iterations": 8, "complexity": 5, "skeletons": 0, "wall_time": 77.50886130332947, "has_plan": false, "error": null, "trial": 1}

@@ -35,8 +35,9 @@ MERGE_ACTIONS = True  # every continuous scenario runs as if given -ma
 MAX_TIME = 300
 
 
-def _discrete_solver(problem, algorithm=ALGORITHM, max_time=MAX_TIME):
+def _discrete_solver(problem, algorithm=ALGORITHM, max_time=MAX_TIME, planner=None):
     problem_fn = discrete_run.get_problem_fn(problem)
+    extra = {} if planner is None else {'planner': planner}
 
     def solve():
         # Rebuilt per trial: the TAMP problem objects are cheap and this keeps
@@ -46,13 +47,15 @@ def _discrete_solver(problem, algorithm=ALGORITHM, max_time=MAX_TIME):
             algorithm=algorithm,
             max_time=max_time,
             verbose=False,
+            **extra
         )
     return solve
 
 
 def _continuous_solver(problem, algorithm=ALGORITHM, max_time=MAX_TIME,
-                       merge_pick_and_stow=MERGE_ACTIONS):
+                       merge_pick_and_stow=MERGE_ACTIONS, planner=None):
     problem_fn = continuous_run.get_problem_fn(problem)
+    extra = {} if planner is None else {'planner': planner}
 
     def solve():
         return continuous_run.solve_tamp(
@@ -62,8 +65,37 @@ def _continuous_solver(problem, algorithm=ALGORITHM, max_time=MAX_TIME,
             max_time=max_time,
             verbose=False,
             dump=False,
+            **extra
         )
     return solve
+
+
+def build_solver(scenario, algorithm=ALGORITHM, max_time=MAX_TIME, planner=None,
+                 merge_pick_and_stow=MERGE_ACTIONS):
+    """Rebuild a scenario's solver with the sweep knobs overridden.
+
+    `Scenario.solve` is frozen at the headline configuration (adaptive, -ma,
+    FD's default planner). The comparison sweeps need the same problem under a
+    different algorithm or a different Fast Downward search configuration, so
+    they go through here rather than through the baked-in closure.
+
+    `planner=None` means "do not pass the keyword at all", so the default path
+    is byte-identical to what the CLI does -- it does not hard-code FD's
+    current DEFAULT_PLANNER and so cannot drift from it.
+    """
+    if scenario.phase == DISCRETE:
+        return _discrete_solver(scenario.problem, algorithm=algorithm,
+                                max_time=max_time, planner=planner)
+    return _continuous_solver(scenario.problem, algorithm=algorithm,
+                              max_time=max_time, planner=planner,
+                              merge_pick_and_stow=merge_pick_and_stow)
+
+
+def find_scenario(phase, label):
+    for scenario in scenarios_for(phase):
+        if scenario.label == label:
+            return scenario
+    raise ValueError('No scenario {!r} in phase {!r}'.format(label, phase))
 
 
 # --------------------------------------------------------------------------
@@ -120,7 +152,7 @@ CONTINUOUS_SCENARIOS = [
         label='multi_object',
         phase=CONTINUOUS,
         problem='get_multi_object_problem',
-        complexity='3 cubes to one table -- tray slots and placement interaction',
+        complexity='3 cubes to a distant table -- rewards tray batching',
         solve=_continuous_solver('get_multi_object_problem'),
     ),
     Scenario(

@@ -1,10 +1,10 @@
-# discrete2d -- adaptive, mean +/- population std over 5 trials
+# discrete2d -- adaptive, mean +/- population std over 20 trials
 
 | metric | pick_place | object_transport | rearrangement |
 |---|---|---|---|
-| Total run time (s) | 0.029 ± 0.010 | 0.026 ± 0.001 | 0.029 ± 0.003 |
-| Search time (s) | 0.029 ± 0.010 | 0.026 ± 0.001 | 0.029 ± 0.003 |
-| Sample time (s) | 4.89e-05 ± 7.36e-06 | 5.19e-05 ± 1.04e-05 | 5.08e-05 ± 4.83e-06 |
+| Total run time (s) | 0.021 ± 0.002 | 0.023 ± 0.002 | 0.044 ± 0.004 |
+| Search time (s) | 0.021 ± 0.002 | 0.023 ± 0.002 | 0.044 ± 0.004 |
+| Sample time (s) | 4.37e-05 ± 6.75e-06 | 4.08e-05 ± 2.80e-06 | 5.11e-05 ± 6.54e-06 |
 | Evaluations | 14 | 18 | 23 |
 | Iterations | 2.0 | 2.0 | 2.0 |
 | Final complexity limit | 1.0 | 1.0 | 1.0 |
